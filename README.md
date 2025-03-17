@@ -15,4 +15,18 @@ Calcura is a lightweight, domain-specific programming language designed for geos
 
 #### Prerequisites
 - Install VS Code
+    - Install "OCaml Platform" Extension
 - Install OCaml
+
+#### Initial Setup First-Time (Command Prompt)
+```
+opam init
+opam install ocaml-lsp-server odoc ocamlformat utop
+for /f "tokens=*" %i in ('opam env') do @%i
+```
+
+#### New Dev Session
+```
+opam init
+for /f "tokens=*" %i in ('opam env') do @%i
+```

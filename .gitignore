@@ -2,3 +2,5 @@
 *.cmi
 *.exe
 *.o
+out/*
+.vscode/*
