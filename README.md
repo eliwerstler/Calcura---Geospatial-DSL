@@ -30,3 +30,10 @@ for /f "tokens=*" %i in ('opam env') do @%i
 opam init
 for /f "tokens=*" %i in ('opam env') do @%i
 ```
+
+#### Make Commands
+```
+make
+make clean
+make test
+```
