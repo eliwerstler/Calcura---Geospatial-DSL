@@ -3,6 +3,8 @@ open Scanner
 open Parser
 open Interpreter
 
+(* Input -> Scanner -> Parser -> AST -> Interpreter -> Output *)
+
 let () =
   let input = read_line () in
   try
