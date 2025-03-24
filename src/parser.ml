@@ -1,6 +1,6 @@
 (* parser.ml *)
 open Ast
-open Lexer
+open Scanner
 
 exception ParseError of string
 

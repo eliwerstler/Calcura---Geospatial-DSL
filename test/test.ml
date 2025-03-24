@@ -1,5 +1,5 @@
 (* test.ml *)
-open Lexer
+open Scanner
 open Parser
 open Interpreter
 

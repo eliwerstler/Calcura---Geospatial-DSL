@@ -1,4 +1,4 @@
-(* lexer.ml *)
+(* scanner.ml *)
 
 (* TODO: Implement all tokens  *)
 type token =
