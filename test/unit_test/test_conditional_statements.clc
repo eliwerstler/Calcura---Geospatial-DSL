@@ -1,2 +1,6 @@
+// This is a unit test file. All print statements must have a comment 
+// on the line above them with the expected value for that print.
+// See README for more info.
+
 // todo
 print("todo");

@@ -24,6 +24,29 @@ let rec eval_expr = function
       | (IntVal i1, IntVal i2) ->
           IntVal (i1 - i2)
       | _ -> failwith "Type error: Sub operation requires two integers")
+  | Binop (e1, Mult, e2) ->
+      let v1 = eval_expr e1 in
+      let v2 = eval_expr e2 in
+      (match (v1, v2) with
+      | (IntVal i1, IntVal i2) ->
+          IntVal (i1 * i2)
+      | _ -> failwith "Type error: Mult operation requires two integers")
+  | Binop (e1, Div, e2) ->
+      let v1 = eval_expr e1 in
+      let v2 = eval_expr e2 in
+      (match (v1, v2) with
+      | (IntVal i1, IntVal i2) ->
+          if i2 = 0 then failwith "Runtime error: Division by zero"
+          else IntVal (i1 / i2)
+      | _ -> failwith "Type error: Div operation requires two integers")
+  | Binop (e1, Mod, e2) ->
+      let v1 = eval_expr e1 in
+      let v2 = eval_expr e2 in
+      (match (v1, v2) with
+      | (IntVal i1, IntVal i2) ->
+          if i2 = 0 then failwith "Runtime error: Modulo by zero"
+          else IntVal (i1 mod i2)
+      | _ -> failwith "Type error: Mod operation requires two integers")
   | _ ->
       failwith "unimplemented"
 

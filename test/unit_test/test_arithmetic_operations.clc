@@ -1,6 +1,21 @@
+// This is a unit test file. All print statements must have a comment 
+// on the line above them with the expected value for that print.
+// See README for more info.
+
 // 4
 print(2 + 2);
 
 // 18
 print(6 + 12);
 
+// -1
+print(2 - 3);
+
+// 6
+print(2 * 3);
+
+// 10
+print(20 / 2);
+
+// 1
+print(7 % 3);

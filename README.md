@@ -20,18 +20,33 @@ Calcura source code files use the `.clc` file extension.
 - Install VS Code
     - Install "OCaml Platform" Extension
 - Install OCaml
+    - https://ocaml.org/docs/installing-ocaml
 
 #### Initial Setup First-Time (Command Prompt)
 ```
 opam init
 opam install ocaml-lsp-server odoc ocamlformat utop
+
+// on windows cmd
 for /f "tokens=*" %i in ('opam env') do @%i
+
+// OR
+
+// on linux/mac
+eval $(opam env)
 ```
 
 #### New Dev Session
 ```
 opam init
+
+// on windows cmd
 for /f "tokens=*" %i in ('opam env') do @%i
+
+// OR
+
+// on linux/mac
+eval $(opam env)
 ```
 
 #### Make Commands
@@ -41,6 +56,13 @@ make clean
 make test
 make test-single TEST=test/unit_test/test_variable_declaration.clc
 ```
+
+#### Unit Test Suite 
+- make test will default to running all tests in the unit_test directory. 
+- Every test file in this directory must contain a comment above each print statement that states the expected value for that print. This is how the test suite knows whether a test is passing or failing. Without this comment any newly added test will fail.
+- To run a single test on its own use make test-single TEST=TESTPATH
+e.g. make test-single TEST=test/unit_test/test_variable_declaration.clc
+
 
 #### Example Dev Flow
 - Start session
