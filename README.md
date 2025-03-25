@@ -62,6 +62,7 @@ make test-single TEST=test/unit_test/test_variable_declaration.clc
 - Every test file in this directory must contain a comment above each print statement that states the expected value for that print. This is how the test suite knows whether a test is passing or failing. Without this comment any newly added test will fail.
 - To run a single test on its own use make test-single TEST=TESTPATH
 e.g. make test-single TEST=test/unit_test/test_variable_declaration.clc
+- test output is written to test/out/test_results.txt, analyze this file for any failures
 
 
 #### Example Dev Flow
