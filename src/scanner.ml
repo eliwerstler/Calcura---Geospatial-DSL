@@ -19,6 +19,16 @@ type token =
   | AS | ID of string
   | EOF
 
+(* TODO:
+   - char literals
+   - float literals
+   - boolean literals (true/false)
+   - type annotation tokens
+   - function declaration/call tokens
+   - list operation tokens (shift_left, shift_right, swap, reverse, sort, filter, map)
+   - special tokens for built-in functions (max, min, avg, median)
+*)
+
 exception LexError of string
 
 let is_digit c = c >= '0' && c <= '9'
@@ -104,6 +114,28 @@ let tokenize (input: string) : token list =
     | "and" -> AND
     | "or" -> OR
     | "not" -> NOT
+    (* TODO: Add support for additional keywords:
+       - for
+       - while
+       - break
+       - continue
+       - in
+       - func
+       - return
+       - shift_left
+       - shift_right
+       - swap
+       - reverse
+       - sort
+       - filter
+       - map
+       - max
+       - min
+       - avg
+       - median
+       - as (for type casting)
+       - type keywords (int, float, bool, char, string, list)
+    *)
     | _ -> ID id
   in
   tokenize_helper 0 []
