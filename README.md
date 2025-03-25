@@ -3,6 +3,9 @@
 
 Calcura is a lightweight, domain-specific programming language designed for geospatial analysis and spatial computations. It provides intuitive syntax and optimized operations for handling geographical data, making it ideal for map processing, space exploration analytics, and geospatial computations.
 
+### File Extension
+Calcura source code files use the `.clc` file extension.
+
 ### Team Members:
 - Sayef Iqbal
 - Crystal Martinez

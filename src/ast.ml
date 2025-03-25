@@ -5,7 +5,7 @@ type primitive =
   | FloatLit of float
   | BoolLit of bool
   | CharLit of char
-  | StringLit of string
+  | StringLit of string  (* Add StringLit for string literals *)
 
 type typ =
   | Int | Float | Bool | Char | String
