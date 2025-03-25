@@ -50,8 +50,17 @@ let run_test_file filename =
   | ParseError msg -> Printf.printf "Parser Error in file %s: %s\n" filename msg
   | e -> Printf.printf "Unexpected Error in file %s: %s\n" filename (Printexc.to_string e)
 
-let () =
+let run_all_tests () =
   let test_dir = "test/unit_test" in
   let test_files = Array.to_list (Sys.readdir test_dir) in
   let clc_files = List.filter (fun f -> Filename.check_suffix f ".clc") test_files in
   List.iter (fun f -> run_test_file (Filename.concat test_dir f)) clc_files
+
+let () =
+  if Array.length Sys.argv > 1 then
+    (* Run a single test file specified as command line argument *)
+    let test_file = Sys.argv.(1) in
+    run_test_file test_file
+  else
+    (* Run all test files in the unit_test directory *)
+    run_all_tests ()

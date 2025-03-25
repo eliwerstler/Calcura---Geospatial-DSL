@@ -39,4 +39,25 @@ for /f "tokens=*" %i in ('opam env') do @%i
 make
 make clean
 make test
+make test-single TEST=test/unit_test/test_variable_declaration.clc
 ```
+
+#### Example Dev Flow
+- Start session
+```
+opam init
+for /f "tokens=*" %i in ('opam env') do @%i
+```
+- Update parser to add functionality
+```
+make clean
+make test
+```
+- Ensure all unit tests are passing
+- Update unit test to test new functionality
+```
+make clean
+make test
+```
+- Ensure all unit tests are passing
+- Commit/push/pull request
