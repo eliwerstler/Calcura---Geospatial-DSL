@@ -9,14 +9,14 @@ all: compile_sources
 	ocamlopt -o out/calcura out/ast.cmx out/scanner.cmx out/parser.cmx out/interpreter.cmx out/main.cmx
 
 test: compile_sources
-	ocamlopt -c -I out -o out/test_suite.cmx test/test_suite.ml
-	ocamlopt -o out/test_suite.exe out/ast.cmx out/scanner.cmx out/parser.cmx out/interpreter.cmx out/test_suite.cmx
+	ocamlopt -c -I +str -I +unix -I out -o out/test_suite.cmx test/test_suite.ml
+	ocamlopt -I +str -I +unix -o out/test_suite.exe str.cmxa unix.cmxa out/ast.cmx out/scanner.cmx out/parser.cmx out/interpreter.cmx out/test_suite.cmx
 	./out/test_suite.exe
 
 # Run a single test: make test-single TEST=<test_file>
 test-single: compile_sources
-	ocamlopt -c -I out -o out/test_suite.cmx test/test_suite.ml
-	ocamlopt -o out/test_suite.exe out/ast.cmx out/scanner.cmx out/parser.cmx out/interpreter.cmx out/test_suite.cmx
+	ocamlopt -c -I +str -I +unix -I out -o out/test_suite.cmx test/test_suite.ml
+	ocamlopt -I +str -I +unix -o out/test_suite.exe str.cmxa unix.cmxa out/ast.cmx out/scanner.cmx out/parser.cmx out/interpreter.cmx out/test_suite.cmx
 	./out/test_suite.exe $(TEST)
 	
 create_out_dir:
@@ -34,4 +34,7 @@ clean:
 	)
 	@if exist out\*.exe ( \
 		if exist NUL (del /Q out\*.exe) else (rm -f out/*.exe) \
+	)
+	@if exist test\out\*.out ( \
+		if exist NUL (del /Q test\out\*.out) else (rm -f test/out/*.out) \
 	)
