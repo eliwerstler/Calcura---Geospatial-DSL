@@ -6,6 +6,8 @@ type primitive =
   | BoolLit of bool
   | CharLit of char
   | StringLit of string  (* Add StringLit for string literals *)
+  | IntListLit of int list
+  | FloatListLit of float list
 
 type typ =
   | Int | Float | Bool | Char | String
@@ -18,6 +20,11 @@ type expr =
   | Unop of unop * expr
   | ListExpr of expr list
   | Call of identifier * expr list
+  | IntListLit of int list
+  | FloatListLit of float list
+  | Index of expr * expr
+
+
 
 and binop = Add | Sub | Mult | Div | Mod | Equal | Neq | Less | Leq | Greater | Geq | And | Or
 and unop = Neg | Not

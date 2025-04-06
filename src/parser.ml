@@ -25,10 +25,31 @@ let rec parse_expr tokens =
             parse_binop (Literal (StringLit s)) rest
     | ID id :: rest ->
             parse_binop (Id id) rest
+    | BOOL b :: rest -> parse_binop (Literal (BoolLit b)) rest
+    | LBRACKET :: RBRACKET :: rest' ->
+        parse_binop (Literal (IntListLit [])) rest'
+    | LBRACKET :: rest ->
+        let rec collect_elements toks acc =
+          match toks with
+          | RBRACKET :: rest' ->
+              (* Infer type from elements (int or float) *)
+              (match acc with
+              | (INT _ :: _) -> 
+                Literal (IntListLit (List.rev_map (function INT i -> i | _ -> failwith "Expected int") acc)), rest'
+              | (FLOAT _ :: _) -> 
+                Literal (FloatListLit (List.rev_map (function FLOAT f -> f | _ -> failwith "Expected float") acc)), rest'
+               | _ -> raise (ParseError "Empty or mixed-type list not yet supported"))
+          | INT i :: COMMA :: rest' -> collect_elements rest' (INT i :: acc)
+          | INT i :: rest' -> collect_elements rest' (INT i :: acc)
+          | FLOAT f :: COMMA :: rest' -> collect_elements rest' (FLOAT f :: acc)
+          | FLOAT f :: rest' -> collect_elements rest' (FLOAT f :: acc)
+          | _ -> raise (ParseError "Malformed list literal")
+        in
+        let (literal_expr, rest') = collect_elements rest [] in
+        parse_binop literal_expr rest'
     (* TODO:
        - Boolean literals (true/false)
        - Character literals
-       - List literals [1, 2, 3]
        - Function calls
        - List operations (shift_left, shift_right, swap, etc.)
     *)
@@ -68,7 +89,13 @@ and parse_binop left tokens =
             parse_binop (Binop (left, Equal, right)) rest'      
     | NEQ :: rest ->
             let (right, rest') = parse_expr rest in
-            parse_binop (Binop (left, Neq, right)) rest'       
+            parse_binop (Binop (left, Neq, right)) rest'
+    | LBRACKET :: rest ->
+            let (index_expr, rest') = parse_expr rest in
+            (match rest' with
+                | RBRACKET :: rest'' ->
+                parse_binop (Index (left, index_expr)) rest''
+                | _ -> raise (ParseError "Expected ']' after index"))       
     (* TODO: 
        - Comparison operators (==, !=, <, >, <=, >=)
        - Logical operators (and, or)

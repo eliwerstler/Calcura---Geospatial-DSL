@@ -14,3 +14,23 @@ print( x + y );
 
 // 12
 print( y - x );
+
+let a = 3.14;
+let b = 2.0;
+let c = a + b;
+
+// 5.14
+print(c);
+
+let nums = [1,2,3];
+let decimals = [3.1,4.5];
+
+// [1, 2, 3]
+print(nums);
+
+// [3.1, 4.5]
+print(decimals);
+
+let z = [];
+// []
+print(z);
