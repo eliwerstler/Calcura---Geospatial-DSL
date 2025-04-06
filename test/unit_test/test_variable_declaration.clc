@@ -4,3 +4,13 @@
 
 // todo
 print("todo");
+
+let x = 2 + 3;
+let y = 9 + 8;
+
+// 22
+print( x + y );
+
+
+// 12
+print( y - x );

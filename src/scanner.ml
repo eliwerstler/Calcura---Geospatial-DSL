@@ -93,6 +93,8 @@ let tokenize (input: string) : token list =
     | ')' -> tokenize_helper (i + 1) (RPAREN :: acc)
     | ';' -> tokenize_helper (i + 1) (SEMI :: acc)
     | ',' -> tokenize_helper (i + 1) (COMMA :: acc)
+    | '{' -> tokenize_helper (i + 1) (LBRACE :: acc)
+    | '}' -> tokenize_helper (i + 1) (RBRACE :: acc)
     | _ -> raise (LexError ("Unexpected character: " ^ String.make 1 input.[i]))
   and read_string i acc =
     let rec collect_string j =

@@ -14,6 +14,7 @@ exception ParseError of string
    7. Block expressions
 *)
 
+
 let rec parse_expr tokens =
     match tokens with
     | INT i :: rest ->
@@ -56,20 +57,55 @@ and parse_binop left tokens =
     | MOD :: rest ->
             let (right, rest') = parse_expr rest in
             parse_binop (Binop (left, Mod, right)) rest'
+    | GT :: rest ->
+            let (right, rest') = parse_expr rest in
+            parse_binop (Binop (left, Greater, right)) rest'         
+    | LT :: rest ->
+            let (right, rest') = parse_expr rest in
+            parse_binop (Binop (left, Less, right)) rest'         
+    | EQ :: rest ->
+            let (right, rest') = parse_expr rest in
+            parse_binop (Binop (left, Equal, right)) rest'      
+    | NEQ :: rest ->
+            let (right, rest') = parse_expr rest in
+            parse_binop (Binop (left, Neq, right)) rest'       
     (* TODO: 
        - Comparison operators (==, !=, <, >, <=, >=)
        - Logical operators (and, or)
        - Type casting with 'as'
     *)
     | _ -> (left, tokens)
-
-let rec parse_stmt tokens =
+let rec parse_block tokens =
+        match tokens with
+        | LBRACE :: rest ->
+                let rec parse_statements toks acc =
+                match toks with
+                | RBRACE :: rest' -> (List.rev acc, rest')
+                | _ ->
+                        let (stmt, rest') = parse_stmt toks in
+                        parse_statements rest' (stmt :: acc)
+                in
+                parse_statements rest []
+        | _ -> raise (ParseError "Expected '{' to start a block")
+and parse_stmt tokens =
     match tokens with
     | LET :: ID id :: ASSIGN :: rest ->
             let (expr, rest') = parse_expr rest in
             (match rest' with
             | SEMI :: rest'' -> (Decl (id, None, expr), rest'')
             | _ -> raise (ParseError "Expected semicolon after declaration"))
+    | IF :: LPAREN :: rest ->
+        let (cond_expr, rest1) = parse_expr rest in
+        (match rest1 with
+        | RPAREN :: rest2 ->
+                let (then_branch, rest3) = parse_block rest2 in
+                (match rest3 with
+                | ELSE :: rest4 ->
+                let (else_branch, rest5) = parse_block rest4 in
+                (If (cond_expr, then_branch, Some else_branch), rest5)
+                | _ ->
+                (If (cond_expr, then_branch, None), rest3))
+        | _ -> raise (ParseError "Expected ')' after condition"))
     (* TODO: 
        - Variable declarations with explicit types
        - Function declarations
