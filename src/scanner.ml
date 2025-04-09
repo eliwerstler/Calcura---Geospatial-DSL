@@ -9,7 +9,7 @@ type token =
   | PLUS | MINUS | TIMES | DIV | MOD
   | ASSIGN | EQ | NEQ | LT | LEQ | GT | GEQ
   | AND | OR | NOT
-  | LPAREN | RPAREN | LBRACE | RBRACE | LBRACK | RBRACK
+  | LPAREN | RPAREN | LBRACE | RBRACE | LBRACKET | RBRACKET
   | SEMI | COMMA | COLON | DOT
   | LET | FUNC | RETURN
   | IF | ELSE | FOR | WHILE | IN | BREAK | CONTINUE
@@ -21,8 +21,6 @@ type token =
 
 (* TODO:
    - char literals
-   - float literals
-   - boolean literals (true/false)
    - type annotation tokens
    - function declaration/call tokens
    - list operation tokens (shift_left, shift_right, swap, reverse, sort, filter, map)
@@ -56,9 +54,15 @@ let tokenize (input: string) : token list =
     let rec collect_digits j =
       if j < length && is_digit input.[j] then collect_digits (j + 1) else j
     in
-    let end_digits = collect_digits i in
-    let int_str = String.sub input i (end_digits - i) in
-    tokenize_helper end_digits (INT (int_of_string int_str) :: acc)
+    let end_int = collect_digits i in
+    if end_int < length && input.[end_int] = '.' then
+      let end_frac = collect_digits (end_int + 1) in
+      let float_str = String.sub input i (end_frac - i) in
+      tokenize_helper end_frac (FLOAT (float_of_string float_str) :: acc)
+    else
+      let int_str = String.sub input i (end_int - i) in
+      tokenize_helper end_int (INT (int_of_string int_str) :: acc)
+  
   and read_identifier i acc =
     let rec collect_id j =
       if j < length && (is_alnum input.[j] || input.[j] = '_') then collect_id (j + 1) else j
@@ -93,6 +97,10 @@ let tokenize (input: string) : token list =
     | ')' -> tokenize_helper (i + 1) (RPAREN :: acc)
     | ';' -> tokenize_helper (i + 1) (SEMI :: acc)
     | ',' -> tokenize_helper (i + 1) (COMMA :: acc)
+    | '{' -> tokenize_helper (i + 1) (LBRACE :: acc)
+    | '}' -> tokenize_helper (i + 1) (RBRACE :: acc)
+    | '[' -> tokenize_helper (i + 1) (LBRACKET :: acc)
+    | ']' -> tokenize_helper (i + 1) (RBRACKET :: acc)
     | _ -> raise (LexError ("Unexpected character: " ^ String.make 1 input.[i]))
   and read_string i acc =
     let rec collect_string j =
@@ -114,6 +122,9 @@ let tokenize (input: string) : token list =
     | "and" -> AND
     | "or" -> OR
     | "not" -> NOT
+    | "true" -> BOOL true
+    | "false" -> BOOL false
+
     (* TODO: Add support for additional keywords:
        - for
        - while

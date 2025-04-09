@@ -4,3 +4,42 @@
 
 // todo
 print("todo");
+
+let x = 5;
+if (x > 9) {
+  print(x);
+}
+else {
+  // negative
+  print("negative");
+}
+
+let a = 2.5;
+let b = 6.0;
+let c = a + b;
+
+if ( c > 5.5 ) {
+  // greater
+  print("greater");
+}
+else {
+ print("lower");
+}
+
+
+let ex1 = true;
+let ex2 = false;
+
+
+if (ex1) {
+  // hello
+  print("hello");
+}
+
+if (ex2) {
+  print("nope");
+}
+else {
+  // goodbye
+  print("goodbye");
+}

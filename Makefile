@@ -1,40 +1,39 @@
-compile_sources: create_out_dir
-	ocamlopt -c -o out/ast.cmx src/ast.ml
-	ocamlopt -c -I out -o out/scanner.cmx src/scanner.ml
-	ocamlopt -c -I out -o out/parser.cmx src/parser.ml
-	ocamlopt -c -I out -o out/interpreter.cmx src/interpreter.ml
+# Makefile - Cross-platform (macOS, Linux, Git Bash on Windows)
+
+OUT_DIR = out
+SRC_DIR = src
+TEST_DIR = test
+SOURCES = $(SRC_DIR)/ast.ml $(SRC_DIR)/scanner.ml $(SRC_DIR)/parser.ml $(SRC_DIR)/interpreter.ml
+OBJECTS = $(OUT_DIR)/ast.cmx $(OUT_DIR)/scanner.cmx $(OUT_DIR)/parser.cmx $(OUT_DIR)/interpreter.cmx
+MAIN_OBJ = $(OUT_DIR)/main.cmx
+EXECUTABLE = $(OUT_DIR)/calcura
+TEST_EXEC = $(OUT_DIR)/test_suite.exe
+
+.PHONY: all compile_sources test test-single clean create_out_dir
 
 all: compile_sources
-	ocamlopt -c -I out -o out/main.cmx src/main.ml
-	ocamlopt -o out/calcura out/ast.cmx out/scanner.cmx out/parser.cmx out/interpreter.cmx out/main.cmx
+	ocamlopt -c -I $(OUT_DIR) -o $(MAIN_OBJ) $(SRC_DIR)/main.ml
+	ocamlopt -o $(EXECUTABLE) $(OBJECTS) $(MAIN_OBJ)
+
+compile_sources: create_out_dir
+	ocamlopt -c -o $(OUT_DIR)/ast.cmx $(SRC_DIR)/ast.ml
+	ocamlopt -c -I $(OUT_DIR) -o $(OUT_DIR)/scanner.cmx $(SRC_DIR)/scanner.ml
+	ocamlopt -c -I $(OUT_DIR) -o $(OUT_DIR)/parser.cmx $(SRC_DIR)/parser.ml
+	ocamlopt -c -I $(OUT_DIR) -o $(OUT_DIR)/interpreter.cmx $(SRC_DIR)/interpreter.ml
 
 test: compile_sources
-	ocamlopt -c -I +str -I +unix -I out -o out/test_suite.cmx test/test_suite.ml
-	ocamlopt -I +str -I +unix -o out/test_suite.exe str.cmxa unix.cmxa out/ast.cmx out/scanner.cmx out/parser.cmx out/interpreter.cmx out/test_suite.cmx
-	./out/test_suite.exe
+	ocamlopt -c -I +str -I +unix -I $(OUT_DIR) -o $(OUT_DIR)/test_suite.cmx $(TEST_DIR)/test_suite.ml
+	ocamlopt -I +str -I +unix -o $(TEST_EXEC) str.cmxa unix.cmxa $(OBJECTS) $(OUT_DIR)/test_suite.cmx
+	./$(TEST_EXEC)
 
 # Run a single test: make test-single TEST=<test_file>
 test-single: compile_sources
-	ocamlopt -c -I +str -I +unix -I out -o out/test_suite.cmx test/test_suite.ml
-	ocamlopt -I +str -I +unix -o out/test_suite.exe str.cmxa unix.cmxa out/ast.cmx out/scanner.cmx out/parser.cmx out/interpreter.cmx out/test_suite.cmx
-	./out/test_suite.exe $(TEST)
-	
+	ocamlopt -c -I +str -I +unix -I $(OUT_DIR) -o $(OUT_DIR)/test_suite.cmx $(TEST_DIR)/test_suite.ml
+	ocamlopt -I +str -I +unix -o $(TEST_EXEC) str.cmxa unix.cmxa $(OBJECTS) $(OUT_DIR)/test_suite.cmx
+	./$(TEST_EXEC) $(TEST)
+
 create_out_dir:
-	@if not exist out (mkdir out)
+	@mkdir -p $(OUT_DIR) $(TEST_DIR)/out
 
 clean:
-	@if exist out\*.cmi ( \
-		if exist NUL (del /Q out\*.cmi) else (rm -f out/*.cmi) \
-	)
-	@if exist out\*.cmx ( \
-		if exist NUL (del /Q out\*.cmx) else (rm -f out/*.cmx) \
-	)
-	@if exist out\*.o ( \
-		if exist NUL (del /Q out\*.o) else (rm -f out/*.o) \
-	)
-	@if exist out\*.exe ( \
-		if exist NUL (del /Q out\*.exe) else (rm -f out/*.exe) \
-	)
-	@if exist test\out\*.out ( \
-		if exist NUL (del /Q test\out\*.out) else (rm -f test/out/*.out) \
-	)
+	@rm -f $(OUT_DIR)/*.cmi $(OUT_DIR)/*.cmx $(OUT_DIR)/*.o $(OUT_DIR)/*.exe $(OUT_DIR)/*~ $(TEST_DIR)/out/*.out

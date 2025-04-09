@@ -14,6 +14,7 @@ exception ParseError of string
    7. Block expressions
 *)
 
+
 let rec parse_expr tokens =
     match tokens with
     | INT i :: rest ->
@@ -24,10 +25,31 @@ let rec parse_expr tokens =
             parse_binop (Literal (StringLit s)) rest
     | ID id :: rest ->
             parse_binop (Id id) rest
+    | BOOL b :: rest -> parse_binop (Literal (BoolLit b)) rest
+    | LBRACKET :: RBRACKET :: rest' ->
+        parse_binop (Literal (IntListLit [])) rest'
+    | LBRACKET :: rest ->
+        let rec collect_elements toks acc =
+          match toks with
+          | RBRACKET :: rest' ->
+              (* Infer type from elements (int or float) *)
+              (match acc with
+              | (INT _ :: _) -> 
+                Literal (IntListLit (List.rev_map (function INT i -> i | _ -> failwith "Expected int") acc)), rest'
+              | (FLOAT _ :: _) -> 
+                Literal (FloatListLit (List.rev_map (function FLOAT f -> f | _ -> failwith "Expected float") acc)), rest'
+               | _ -> raise (ParseError "Empty or mixed-type list not yet supported"))
+          | INT i :: COMMA :: rest' -> collect_elements rest' (INT i :: acc)
+          | INT i :: rest' -> collect_elements rest' (INT i :: acc)
+          | FLOAT f :: COMMA :: rest' -> collect_elements rest' (FLOAT f :: acc)
+          | FLOAT f :: rest' -> collect_elements rest' (FLOAT f :: acc)
+          | _ -> raise (ParseError "Malformed list literal")
+        in
+        let (literal_expr, rest') = collect_elements rest [] in
+        parse_binop literal_expr rest'
     (* TODO:
        - Boolean literals (true/false)
        - Character literals
-       - List literals [1, 2, 3]
        - Function calls
        - List operations (shift_left, shift_right, swap, etc.)
     *)
@@ -56,20 +78,61 @@ and parse_binop left tokens =
     | MOD :: rest ->
             let (right, rest') = parse_expr rest in
             parse_binop (Binop (left, Mod, right)) rest'
+    | GT :: rest ->
+            let (right, rest') = parse_expr rest in
+            parse_binop (Binop (left, Greater, right)) rest'         
+    | LT :: rest ->
+            let (right, rest') = parse_expr rest in
+            parse_binop (Binop (left, Less, right)) rest'         
+    | EQ :: rest ->
+            let (right, rest') = parse_expr rest in
+            parse_binop (Binop (left, Equal, right)) rest'      
+    | NEQ :: rest ->
+            let (right, rest') = parse_expr rest in
+            parse_binop (Binop (left, Neq, right)) rest'
+    | LBRACKET :: rest ->
+            let (index_expr, rest') = parse_expr rest in
+            (match rest' with
+                | RBRACKET :: rest'' ->
+                parse_binop (Index (left, index_expr)) rest''
+                | _ -> raise (ParseError "Expected ']' after index"))       
     (* TODO: 
        - Comparison operators (==, !=, <, >, <=, >=)
        - Logical operators (and, or)
        - Type casting with 'as'
     *)
     | _ -> (left, tokens)
-
-let rec parse_stmt tokens =
+let rec parse_block tokens =
+        match tokens with
+        | LBRACE :: rest ->
+                let rec parse_statements toks acc =
+                match toks with
+                | RBRACE :: rest' -> (List.rev acc, rest')
+                | _ ->
+                        let (stmt, rest') = parse_stmt toks in
+                        parse_statements rest' (stmt :: acc)
+                in
+                parse_statements rest []
+        | _ -> raise (ParseError "Expected '{' to start a block")
+and parse_stmt tokens =
     match tokens with
     | LET :: ID id :: ASSIGN :: rest ->
             let (expr, rest') = parse_expr rest in
             (match rest' with
             | SEMI :: rest'' -> (Decl (id, None, expr), rest'')
             | _ -> raise (ParseError "Expected semicolon after declaration"))
+    | IF :: LPAREN :: rest ->
+        let (cond_expr, rest1) = parse_expr rest in
+        (match rest1 with
+        | RPAREN :: rest2 ->
+                let (then_branch, rest3) = parse_block rest2 in
+                (match rest3 with
+                | ELSE :: rest4 ->
+                let (else_branch, rest5) = parse_block rest4 in
+                (If (cond_expr, then_branch, Some else_branch), rest5)
+                | _ ->
+                (If (cond_expr, then_branch, None), rest3))
+        | _ -> raise (ParseError "Expected ')' after condition"))
     (* TODO: 
        - Variable declarations with explicit types
        - Function declarations
