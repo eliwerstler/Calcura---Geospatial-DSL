@@ -1,4 +1,4 @@
-// This is a unit test file. All print statements must have a comment 
+// This is a unit test file. All print statements must have a comment
 // on the line above them with the expected value for that print.
 // See README for more info.
 
@@ -42,4 +42,19 @@ if (ex2) {
 else {
   // goodbye
   print("goodbye");
+}
+
+// testing nested if-else
+let num = 10;
+if (num > 5) {
+  if (num < 15) {
+    // within range
+    print("within range");
+  }
+  else {
+    print("too high");
+  }
+}
+else {
+  print("too low");
 }
