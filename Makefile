@@ -33,7 +33,12 @@ test-single: compile_sources
 	./$(TEST_EXEC) $(TEST)
 
 create_out_dir:
+ifeq ($(OS),Windows_NT)
+	@if not exist $(OUT_DIR) mkdir $(OUT_DIR)
+	@if not exist $(TEST_DIR)\out mkdir $(TEST_DIR)\out
+else
 	@mkdir -p $(OUT_DIR) $(TEST_DIR)/out
+endif
 
 clean:
 	@rm -f $(OUT_DIR)/*.cmi $(OUT_DIR)/*.cmx $(OUT_DIR)/*.o $(OUT_DIR)/*.exe $(OUT_DIR)/*~ $(TEST_DIR)/out/*.out
