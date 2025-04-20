@@ -1,0 +1,24 @@
+// This is a unit test file. All print statements must have a comment 
+// on the line above them with the expected value for that print.
+// See README for more info.
+
+let nums = [1,2,3];
+let decimals = [3.1,4.5];
+
+// Test with a list of integers
+// [2, 3, 4]
+print(transform(nums, from=WGS84, to=UTM));
+// [1, 2, 3]
+print(transform(nums, from=UTM, to=WGS84));
+
+// Test with an empty list
+let empty_list = [];
+// []
+print(transform(empty_list, from=WGS84, to=UTM));
+
+// Test with a single element list
+let single_element = [5];
+// Expected: [6]
+print(transform(single_element, from=WGS84, to=UTM));
+// Expected: [5]
+print(transform(single_element, from=UTM, to=WGS84));

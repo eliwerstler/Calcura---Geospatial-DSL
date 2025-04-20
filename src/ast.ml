@@ -23,7 +23,7 @@ type expr =
   | IntListLit of int list
   | FloatListLit of float list
   | Index of expr * expr
-
+  | Transform of expr * expr * expr
 
 
 and binop = Add | Sub | Mult | Div | Mod | Equal | Neq | Less | Leq | Greater | Geq | And | Or

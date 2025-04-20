@@ -16,6 +16,7 @@ type token =
   | PRINT | MAX | MIN | AVG | MEDIAN
   | SHIFT_LEFT | SHIFT_RIGHT | SWAP | REVERSE | SORT | FILTER | MAP
   | INT_TYPE | FLOAT_TYPE | BOOL_TYPE | CHAR_TYPE | STRING_TYPE | LIST
+  | TRANSFORM | FROM | TO | WGS84 | UTM 
   | AS | ID of string
   | EOF
 
@@ -124,6 +125,15 @@ let tokenize (input: string) : token list =
     | "not" -> NOT
     | "true" -> BOOL true
     | "false" -> BOOL false
+    | "transform" -> TRANSFORM
+    | "from" -> 
+      print_endline "Identified keyword: from"; 
+        FROM
+    | "to" -> 
+      print_endline "Identified keyword: to"; 
+        TO
+    | "WGS84" -> WGS84
+    | "UTM" -> UTM
 
     (* TODO: Add support for additional keywords:
        - for

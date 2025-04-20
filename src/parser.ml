@@ -53,6 +53,22 @@ let rec parse_expr tokens =
        - Function calls
        - List operations (shift_left, shift_right, swap, etc.)
     *)
+    | TRANSFORM :: LPAREN :: rest ->
+        print_endline "Parsing TRANSFORM expression";
+        let (list_expr, rest1) = parse_expr rest in
+        (match rest1 with
+        | COMMA :: FROM :: EQ :: rest2 ->
+            print_endline "Found FROM keyword";
+            let (from_expr, rest3) = parse_expr rest2 in
+            (match rest3 with
+            | COMMA :: TO :: EQ :: rest4 ->
+                print_endline "Found TO keyword";
+                let (to_expr, rest5) = parse_expr rest4 in
+                (match rest5 with
+                | RPAREN :: rest6 -> parse_binop (Transform(list_expr, from_expr, to_expr)) rest6
+                | _ -> raise (ParseError "Expected closing parenthesis after transform arguments"))
+            | _ -> raise (ParseError "Expected 'to=' argument in transform"))
+        | _ -> raise (ParseError "Expected 'from=' argument in transform"))
     | LPAREN :: rest ->
             let (expr, rest') = parse_expr rest in
             (match rest' with
