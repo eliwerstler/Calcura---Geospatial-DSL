@@ -14,6 +14,12 @@ module Env = Map.Make(String)
 
 let env : value Env.t ref = ref Env.empty
 
+let transform_list lst from_system to_system =
+  match (from_system, to_system) with
+  | "WGS84", "UTM" -> List.map (fun x -> x + 1) lst
+  | "UTM", "WGS84" -> List.map (fun x -> x - 1) lst
+  | _ -> failwith "Unsupported transformation"
+
 let rec eval_expr (e : expr) : value = 
     match e with
     | Id name ->
@@ -38,7 +44,7 @@ let rec eval_expr (e : expr) : value =
             if i < 0 || i >= List.length xs then failwith "Index out of bounds"
             else FloatVal (List.nth xs i)
         | _ -> failwith "Invalid list indexing" *)
-  
+
     | Binop (e1, Add, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
@@ -126,6 +132,17 @@ let rec eval_expr (e : expr) : value =
          | StringVal s1, StringVal s2 -> IntVal (if s1 <> s2 then 1 else 0)
          | _ -> failwith "Type mismatch in inequality check")
   
+    | Transform(list_expr, from_expr, to_expr) -> 
+        let list_val = eval_expr list_expr in
+        let from_val = eval_expr from_expr in
+        let to_val = eval_expr to_expr in
+        (match (list_val, from_val, to_val) with
+         | IntList lst, StringVal "WGS84", StringVal "UTM" ->
+             IntList (transform_list lst "WGS84" "UTM")
+         | IntList lst, StringVal "UTM", StringVal "WGS84" ->
+             IntList (transform_list lst "UTM" "WGS84")
+         | _ -> failwith "Invalid arguments for transform")
+
     | _ -> failwith "unimplemented"
   
 let rec eval_stmt = function

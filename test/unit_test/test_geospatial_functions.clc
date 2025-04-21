@@ -1,0 +1,12 @@
+// This is a unit test file. All print statements must have a comment 
+// on the line above them with the expected value for that print.
+// See README for more info.
+
+let nums = [1,2,3];
+let decimals = [3.1,4.5];
+
+//transform([1,2,3], from=WGS84, to=UTM);
+
+// [2, 3, 4]
+print(transform([1,2,3], from=WGS84, to=UTM));
+
