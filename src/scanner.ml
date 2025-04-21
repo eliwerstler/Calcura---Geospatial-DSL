@@ -197,12 +197,8 @@ let tokenize (input: string) : token list =
     | "true" -> BOOL true
     | "false" -> BOOL false
     | "transform" -> TRANSFORM
-    | "from" -> 
-      print_endline "Identified keyword: from"; 
-        FROM
-    | "to" -> 
-      print_endline "Identified keyword: to"; 
-        TO
+    | "from" -> FROM
+    | "to" -> TO
     | "WGS84" -> WGS84
     | "UTM" -> UTM
 

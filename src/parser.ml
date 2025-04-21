@@ -58,16 +58,15 @@ let rec parse_expr tokens =
        - List operations (shift_left, shift_right, swap, etc.)
     *)
     | TRANSFORM :: LPAREN :: rest ->
-        //print_endline "Parsing TRANSFORM expression";
+        (* print_endline "Parsing TRANSFORM expression"; *)
         let (list_expr, rest1) = parse_expr rest in
-        //print_endline ("Parsed list_expr: " ^ Ast.string_of_expr list_expr);
-        //print_endline ("Tokens after parsing list_expr: " ^ String.concat " " (List.map Scanner.string_of_token rest1));
+        (* 
+        print_endline ("Parsed list_expr: " ^ Ast.string_of_expr list_expr);
+        print_endline ("Tokens after parsing list_expr: " ^ String.concat " " (List.map Scanner.string_of_token rest1));
+        *)
         (match rest1 with
         | COMMA :: FROM :: ASSIGN :: rest2 ->
-                //print_endline "Found FROM keyword";
                 let (from_expr, rest3) = parse_expr rest2 in
-                //print_endline ("Parsed from_expr: " ^ Ast.string_of_expr from_expr);
-                //print_endline ("Tokens after parsing from_expr: " ^ String.concat " " (List.map Scanner.string_of_token rest3));
                 (match rest3 with
                 | COMMA :: TO :: ASSIGN :: rest4 ->
                         let (to_expr, rest5) = parse_expr rest4 in
