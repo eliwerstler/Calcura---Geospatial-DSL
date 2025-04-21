@@ -24,6 +24,7 @@ type expr =
   | FloatListLit of float list
   | Index of expr * expr
   | Transform of expr * expr * expr
+  | Sort of expr * bool
 
 
 and binop = Add | Sub | Mult | Div | Mod | Equal | Neq | Less | Leq | Greater | Geq | And | Or
