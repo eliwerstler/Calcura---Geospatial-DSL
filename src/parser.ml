@@ -25,9 +25,9 @@ let rec parse_expr tokens =
         parse_binop (Literal (StringLit s)) rest
     | ID id :: rest ->
         parse_binop (Id id) rest
-    | WGS84 :: rest ->  
+    | WGS84 :: rest ->
         parse_binop (Literal (StringLit "WGS84")) rest
-    | UTM :: rest ->    
+    | UTM :: rest ->
         parse_binop (Literal (StringLit "UTM")) rest
     | BOOL b :: rest -> parse_binop (Literal (BoolLit b)) rest
     | LBRACKET :: RBRACKET :: rest' ->
@@ -38,9 +38,9 @@ let rec parse_expr tokens =
         | RBRACKET :: rest' ->
                 (* Infer type from elements (int or float) *)
                 (match acc with
-                | (INT _ :: _) -> 
+                | (INT _ :: _) ->
                 Literal (IntListLit (List.rev_map (function INT i -> i | _ -> failwith "Expected int") acc)), rest'
-                | (FLOAT _ :: _) -> 
+                | (FLOAT _ :: _) ->
                 Literal (FloatListLit (List.rev_map (function FLOAT f -> f | _ -> failwith "Expected float") acc)), rest'
                 | _ -> raise (ParseError "Empty or mixed-type list not yet supported"))
         | INT i :: COMMA :: rest' -> collect_elements rest' (INT i :: acc)
@@ -60,7 +60,7 @@ let rec parse_expr tokens =
     | TRANSFORM :: LPAREN :: rest ->
         (* print_endline "Parsing TRANSFORM expression"; *)
         let (list_expr, rest1) = parse_expr rest in
-        (* 
+        (*
         print_endline ("Parsed list_expr: " ^ Ast.string_of_expr list_expr);
         print_endline ("Tokens after parsing list_expr: " ^ String.concat " " (List.map Scanner.string_of_token rest1));
         *)
@@ -82,6 +82,14 @@ let rec parse_expr tokens =
                 parse_binop expr rest''
             | _ -> raise (ParseError "Expected closing parenthesis"))
     | _ -> raise (ParseError "Unexpected token in expression")
+    | SORT :: LPAREN :: rest ->
+        let (list_expr, rest1) = parse_expr rest in
+        (match rest1 with
+        | COMMA :: BOOL ascending :: RPAREN :: rest2 ->
+            parse_binop (Sort (list_expr, ascending)) rest2
+        | RPAREN :: rest2 -> (* Default to ascending if no bool is provided *)
+            parse_binop (Sort (list_expr, true)) rest2
+        | _ -> raise (ParseError "Expected closing parenthesis ')' after sort arguments"))
 
 and parse_binop left tokens =
     match tokens with
@@ -102,13 +110,13 @@ and parse_binop left tokens =
             parse_binop (Binop (left, Mod, right)) rest'
     | GT :: rest ->
             let (right, rest') = parse_expr rest in
-            parse_binop (Binop (left, Greater, right)) rest'         
+            parse_binop (Binop (left, Greater, right)) rest'
     | LT :: rest ->
             let (right, rest') = parse_expr rest in
-            parse_binop (Binop (left, Less, right)) rest'         
+            parse_binop (Binop (left, Less, right)) rest'
     | EQ :: rest ->
             let (right, rest') = parse_expr rest in
-            parse_binop (Binop (left, Equal, right)) rest'      
+            parse_binop (Binop (left, Equal, right)) rest'
     | NEQ :: rest ->
             let (right, rest') = parse_expr rest in
             parse_binop (Binop (left, Neq, right)) rest'
@@ -117,8 +125,8 @@ and parse_binop left tokens =
             (match rest' with
                 | RBRACKET :: rest'' ->
                 parse_binop (Index (left, index_expr)) rest''
-                | _ -> raise (ParseError "Expected ']' after index"))       
-    (* TODO: 
+                | _ -> raise (ParseError "Expected ']' after index"))
+    (* TODO:
        - Comparison operators (==, !=, <, >, <=, >=)
        - Logical operators (and, or)
        - Type casting with 'as'
@@ -155,7 +163,7 @@ and parse_stmt tokens =
                 | _ ->
                 (If (cond_expr, then_branch, None), rest3))
         | _ -> raise (ParseError "Expected ')' after condition"))
-    (* TODO: 
+    (* TODO:
        - Variable declarations with explicit types
        - Function declarations
        - If/else statements
@@ -172,7 +180,7 @@ and parse_stmt tokens =
                 | RPAREN :: SEMI :: rest'' -> (Print expr, rest'')
                 | RPAREN :: _ -> raise (ParseError "Expected semicolon after print statement")
                 | _ -> raise (ParseError "Expected closing parenthesis"))
-            with 
+            with
             | ParseError _ -> (Print (Literal (StringLit "Error parsing print argument")), []))
     | _ ->
             (try
@@ -183,7 +191,7 @@ and parse_stmt tokens =
             with
             | ParseError _ -> raise (ParseError "Invalid statement"))
 
-(* TODO: 
+(* TODO:
    - Parsing list operations
    - Parsing built-in functions (max, min, avg, median)
    - Parsing function parameters and return types
