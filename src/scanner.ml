@@ -16,15 +16,87 @@ type token =
   | PRINT | MAX | MIN | AVG | MEDIAN
   | SHIFT_LEFT | SHIFT_RIGHT | SWAP | REVERSE | SORT | FILTER | MAP
   | INT_TYPE | FLOAT_TYPE | BOOL_TYPE | CHAR_TYPE | STRING_TYPE | LIST
+  | TRANSFORM | FROM | TO | WGS84 | UTM 
   | AS | ID of string
   | EOF
+
+let string_of_token = function
+  | INT i -> "INT(" ^ string_of_int i ^ ")"
+  | FLOAT f -> "FLOAT(" ^ string_of_float f ^ ")"
+  | BOOL b -> "BOOL(" ^ string_of_bool b ^ ")"
+  | STRING s -> "STRING(" ^ s ^ ")"
+  | CHAR c -> "CHAR(" ^ String.make 1 c ^ ")"
+  | PLUS -> "PLUS"
+  | MINUS -> "MINUS"
+  | TIMES -> "TIMES"
+  | DIV -> "DIV"
+  | MOD -> "MOD"
+  | ASSIGN -> "ASSIGN"
+  | EQ -> "EQ"
+  | NEQ -> "NEQ"
+  | LT -> "LT"
+  | LEQ -> "LEQ"
+  | GT -> "GT"
+  | GEQ -> "GEQ"
+  | AND -> "AND"
+  | OR -> "OR"
+  | NOT -> "NOT"
+  | LPAREN -> "LPAREN"
+  | RPAREN -> "RPAREN"
+  | LBRACE -> "LBRACE"
+  | RBRACE -> "RBRACE"
+  | LBRACKET -> "LBRACKET"
+  | RBRACKET -> "RBRACKET"
+  | SEMI -> "SEMI"
+  | COMMA -> "COMMA"
+  | COLON -> "COLON"
+  | DOT -> "DOT"
+  | LET -> "LET"
+  | FUNC -> "FUNC"
+  | RETURN -> "RETURN"
+  | IF -> "IF"
+  | ELSE -> "ELSE"
+  | FOR -> "FOR"
+  | WHILE -> "WHILE"
+  | IN -> "IN"
+  | BREAK -> "BREAK"
+  | CONTINUE -> "CONTINUE"
+  | PRINT -> "PRINT"
+  | MAX -> "MAX"
+  | MIN -> "MIN"
+  | AVG -> "AVG"
+  | MEDIAN -> "MEDIAN"
+  | SHIFT_LEFT -> "SHIFT_LEFT"
+  | SHIFT_RIGHT -> "SHIFT_RIGHT"
+  | SWAP -> "SWAP"
+  | REVERSE -> "REVERSE"
+  | SORT -> "SORT"
+  | FILTER -> "FILTER"
+  | MAP -> "MAP"
+  | INT_TYPE -> "INT_TYPE"
+  | FLOAT_TYPE -> "FLOAT_TYPE"
+  | BOOL_TYPE -> "BOOL_TYPE"
+  | CHAR_TYPE -> "CHAR_TYPE"
+  | STRING_TYPE -> "STRING_TYPE"
+  | LIST -> "LIST"
+  | TRANSFORM -> "TRANSFORM"
+  | FROM -> "FROM"
+  | TO -> "TO"
+  | WGS84 -> "WGS84"
+  | UTM -> "UTM"
+  | AS -> "AS"
+  | ID id -> "ID(" ^ id ^ ")"
+  | EOF -> "EOF"
 
 (* TODO:
    - char literals
    - type annotation tokens
    - function declaration/call tokens
-   - list operation tokens (shift_left, shift_right, swap, reverse, sort, filter, map)
-   - special tokens for built-in functions (max, min, avg, median)
+   - index (Sayef)
+   - sort (Crystal), desc asc
+   - special tokens for built-in functions (max, min, avg, median) -> Junqi max min
+   - User-defined function (Eli)
+   - list operation tokens (shift_left, shift_right, swap, reverse, filter, map)
 *)
 
 exception LexError of string
@@ -124,6 +196,11 @@ let tokenize (input: string) : token list =
     | "not" -> NOT
     | "true" -> BOOL true
     | "false" -> BOOL false
+    | "transform" -> TRANSFORM
+    | "from" -> FROM
+    | "to" -> TO
+    | "WGS84" -> WGS84
+    | "UTM" -> UTM
 
     (* TODO: Add support for additional keywords:
        - for

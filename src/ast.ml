@@ -23,7 +23,7 @@ type expr =
   | IntListLit of int list
   | FloatListLit of float list
   | Index of expr * expr
-
+  | Transform of expr * expr * expr
 
 
 and binop = Add | Sub | Mult | Div | Mod | Equal | Neq | Less | Leq | Greater | Geq | And | Or
@@ -42,3 +42,32 @@ type stmt =
 
 
 type program = stmt list
+
+let rec string_of_expr = function
+  | Literal (IntLit i) -> string_of_int i
+  | Literal (FloatLit f) -> string_of_float f
+  | Literal (BoolLit b) -> string_of_bool b
+  | Literal (CharLit c) -> "'" ^ String.make 1 c ^ "'"
+  | Literal (StringLit s) -> "\"" ^ s ^ "\""
+  | Literal (IntListLit lst) -> "[" ^ String.concat ", " (List.map string_of_int lst) ^ "]"
+  | Literal (FloatListLit lst) -> "[" ^ String.concat ", " (List.map string_of_float lst) ^ "]"
+  | Id id -> id
+  | Binop (e1, op, e2) ->
+      let op_str = match op with
+        | Add -> "+" | Sub -> "-" | Mult -> "*" | Div -> "/" | Mod -> "%"
+        | Equal -> "==" | Neq -> "!=" | Less -> "<" | Leq -> "<=" | Greater -> ">" | Geq -> ">="
+        | And -> "&&" | Or -> "||"
+      in
+      "(" ^ string_of_expr e1 ^ " " ^ op_str ^ " " ^ string_of_expr e2 ^ ")"
+  | Unop (op, e) ->
+      let op_str = match op with
+        | Neg -> "-" | Not -> "!"
+      in
+      "(" ^ op_str ^ string_of_expr e ^ ")"
+  | ListExpr lst -> "[" ^ String.concat ", " (List.map string_of_expr lst) ^ "]"
+  | Call (id, args) -> id ^ "(" ^ String.concat ", " (List.map string_of_expr args) ^ ")"
+  | Transform (list_expr, from_expr, to_expr) ->
+      "transform(" ^ string_of_expr list_expr ^ ", from=" ^ string_of_expr from_expr ^ ", to=" ^ string_of_expr to_expr ^ ")"
+  | Index (list_expr, index_expr) ->
+      string_of_expr list_expr ^ "[" ^ string_of_expr index_expr ^ "]"
+  | _ -> "Unknown expression"

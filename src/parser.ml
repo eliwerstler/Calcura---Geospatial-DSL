@@ -18,13 +18,17 @@ exception ParseError of string
 let rec parse_expr tokens =
     match tokens with
     | INT i :: rest ->
-            parse_binop (Literal (IntLit i)) rest
+        parse_binop (Literal (IntLit i)) rest
     | FLOAT f :: rest ->
-            parse_binop (Literal (FloatLit f)) rest
+        parse_binop (Literal (FloatLit f)) rest
     | STRING s :: rest ->
-            parse_binop (Literal (StringLit s)) rest
+        parse_binop (Literal (StringLit s)) rest
     | ID id :: rest ->
-            parse_binop (Id id) rest
+        parse_binop (Id id) rest
+    | WGS84 :: rest ->  
+        parse_binop (Literal (StringLit "WGS84")) rest
+    | UTM :: rest ->    
+        parse_binop (Literal (StringLit "UTM")) rest
     | BOOL b :: rest -> parse_binop (Literal (BoolLit b)) rest
     | LBRACKET :: RBRACKET :: rest' ->
         parse_binop (Literal (IntListLit [])) rest'
@@ -56,11 +60,29 @@ let rec parse_expr tokens =
        - Function calls
        - List operations (shift_left, shift_right, swap, etc.)
     *)
+    | TRANSFORM :: LPAREN :: rest ->
+        (* print_endline "Parsing TRANSFORM expression"; *)
+        let (list_expr, rest1) = parse_expr rest in
+        (* 
+        print_endline ("Parsed list_expr: " ^ Ast.string_of_expr list_expr);
+        print_endline ("Tokens after parsing list_expr: " ^ String.concat " " (List.map Scanner.string_of_token rest1));
+        *)
+        (match rest1 with
+        | COMMA :: FROM :: ASSIGN :: rest2 ->
+                let (from_expr, rest3) = parse_expr rest2 in
+                (match rest3 with
+                | COMMA :: TO :: ASSIGN :: rest4 ->
+                        let (to_expr, rest5) = parse_expr rest4 in
+                        (match rest5 with
+                        | RPAREN :: rest6 -> parse_binop (Transform(list_expr, from_expr, to_expr)) rest6
+                        | _ -> raise (ParseError "Expected closing parenthesis after transform arguments"))
+                | _ -> raise (ParseError "Expected 'to=' argument in transform"))
+        | _ -> raise (ParseError "Expected 'from=' argument in transform"))
     | LPAREN :: rest ->
             let (expr, rest') = parse_expr rest in
             (match rest' with
             | RPAREN :: rest'' ->
-                    parse_binop expr rest''
+                parse_binop expr rest''
             | _ -> raise (ParseError "Expected closing parenthesis"))
     | _ -> raise (ParseError "Unexpected token in expression")
 
