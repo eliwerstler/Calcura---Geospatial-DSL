@@ -145,7 +145,7 @@ let tokenize (input: string) : token list =
        - avg
        - median
        - as (for type casting)
-       - type keywords (int, float, bool, char, string, list)
+       - type keywords (char, string, list)
     *)
     | _ -> ID id
   in

@@ -26,19 +26,25 @@ let rec eval_expr (e : expr) : value =
     | Literal (BoolLit b) -> BoolVal b
     | Literal (IntListLit iL) -> IntList iL
     | Literal (FloatListLit fL) -> FloatList fL
-(*   
+    | ListExpr exprs ->
+        let values = List.map eval_expr exprs in
+        (match values with
+        | (IntVal _)::_ ->
+            IntList (List.map (function IntVal i -> i | _ -> failwith "Mixed types in int list") values)
+        | (FloatVal _)::_ ->
+            FloatList (List.map (function FloatVal f -> f | _ -> failwith "Mixed types in float list") values)
+        | _ -> failwith "Unsupported list type")
     | Index (list_expr, index_expr) ->
         let list_val = eval_expr list_expr in
         let index_val = eval_expr index_expr in
-        match (list_val, index_val) with
+        (match (list_val, index_val) with
         | IntList xs, IntVal i ->
             if i < 0 || i >= List.length xs then failwith "Index out of bounds"
             else IntVal (List.nth xs i)
         | FloatList xs, IntVal i ->
             if i < 0 || i >= List.length xs then failwith "Index out of bounds"
             else FloatVal (List.nth xs i)
-        | _ -> failwith "Invalid list indexing" *)
-  
+        | _ -> failwith "Invalid list indexing")
     | Binop (e1, Add, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
@@ -139,7 +145,12 @@ let rec eval_stmt = function
       | IntVal i -> 
           print_endline (string_of_int i)
       | FloatVal f -> 
-          print_endline (string_of_float f)
+        let s = if f = float_of_int (int_of_float f) then 
+            (string_of_int (int_of_float f) ^ ".0") 
+          else 
+            string_of_float f
+        in
+        print_endline s
       | StringVal s -> 
           print_endline s
       | BoolVal b -> print_endline (string_of_bool b)
@@ -157,6 +168,22 @@ let rec eval_stmt = function
       | BoolVal true -> List.iter eval_stmt then_branch
       | BoolVal false -> (match else_opt with Some else_branch -> List.iter eval_stmt else_branch | None -> ())
       | _ -> failwith "Condition must evaluate to an integer or boolean") 
+  | ListAssign (name, index_expr, value_expr) ->
+        let list_val = Env.find name !env in
+        let index_val = eval_expr index_expr in
+        let value = eval_expr value_expr in
+        (match (list_val, index_val) with
+        | IntList xs, IntVal i ->
+            if i < 0 || i >= List.length xs then failwith "Index out of bounds"
+            else
+                let updated = List.mapi (fun idx v -> if idx = i then (match value with IntVal v' -> v' | _ -> failwith "Expected int value") else v) xs in
+                env := Env.add name (IntList updated) !env
+        | FloatList xs, IntVal i ->
+            if i < 0 || i >= List.length xs then failwith "Index out of bounds"
+            else
+                let updated = List.mapi (fun idx v -> if idx = i then (match value with FloatVal v' -> v' | _ -> failwith "Expected float value") else v) xs in
+                env := Env.add name (FloatList updated) !env
+        | _ -> failwith "Invalid list assignment")
   | _ ->
       failwith "unimplemented"
 

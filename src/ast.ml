@@ -32,11 +32,13 @@ and unop = Neg | Not
 type stmt =
   | Decl of identifier * typ option * expr
   | Assign of identifier * expr
+  | ListAssign of identifier * expr * expr
   | Expr of expr
   | If of expr * stmt list * stmt list option
   | For of identifier * expr * stmt list
   | While of expr * stmt list
   | Return of expr option
   | Print of expr
+
 
 type program = stmt list
