@@ -41,4 +41,8 @@ else
 endif
 
 clean:
+ifeq ($(OS),Windows_NT)
+	@if exist $(OUT_DIR) del /Q $(OUT_DIR)\*.cmi $(OUT_DIR)\*.cmx $(OUT_DIR)\*.o $(OUT_DIR)\*.exe $(OUT_DIR)\*~ $(TEST_DIR)\out\*.out
+else
 	@rm -f $(OUT_DIR)/*.cmi $(OUT_DIR)/*.cmx $(OUT_DIR)/*.o $(OUT_DIR)/*.exe $(OUT_DIR)/*~ $(TEST_DIR)/out/*.out
+endif

@@ -196,12 +196,12 @@ let tokenize (input: string) : token list =
     | "not" -> NOT
     | "true" -> BOOL true
     | "false" -> BOOL false
+    | "sort" -> SORT
     | "transform" -> TRANSFORM
     | "from" -> FROM
     | "to" -> TO
     | "WGS84" -> WGS84
     | "UTM" -> UTM
-    | "sort" -> SORT
 
     (* TODO: Add support for additional keywords:
        - for

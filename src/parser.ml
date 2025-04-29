@@ -81,15 +81,15 @@ let rec parse_expr tokens =
             | RPAREN :: rest'' ->
                 parse_binop expr rest''
             | _ -> raise (ParseError "Expected closing parenthesis"))
-    | _ -> raise (ParseError "Unexpected token in expression")
     | SORT :: LPAREN :: rest ->
         let (list_expr, rest1) = parse_expr rest in
         (match rest1 with
         | COMMA :: BOOL ascending :: RPAREN :: rest2 ->
-            parse_binop (Sort (list_expr, ascending)) rest2
+            parse_binop (Sort (list_expr, Some ascending)) rest2
         | RPAREN :: rest2 -> (* Default to ascending if no bool is provided *)
-            parse_binop (Sort (list_expr, true)) rest2
+            parse_binop (Sort (list_expr, None)) rest2
         | _ -> raise (ParseError "Expected closing parenthesis ')' after sort arguments"))
+    | _ -> raise (ParseError "Unexpected token in expression")
 
 and parse_binop left tokens =
     match tokens with
