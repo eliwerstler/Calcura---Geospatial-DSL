@@ -34,20 +34,23 @@ let rec parse_expr tokens =
         parse_binop (Literal (IntListLit [])) rest'
     | LBRACKET :: rest ->
         let rec collect_elements toks acc =
-        match toks with
-        | RBRACKET :: rest' ->
-                (* Infer type from elements (int or float) *)
-                (match acc with
-                | (INT _ :: _) ->
-                Literal (IntListLit (List.rev_map (function INT i -> i | _ -> failwith "Expected int") acc)), rest'
-                | (FLOAT _ :: _) ->
-                Literal (FloatListLit (List.rev_map (function FLOAT f -> f | _ -> failwith "Expected float") acc)), rest'
-                | _ -> raise (ParseError "Empty or mixed-type list not yet supported"))
-        | INT i :: COMMA :: rest' -> collect_elements rest' (INT i :: acc)
-        | INT i :: rest' -> collect_elements rest' (INT i :: acc)
-        | FLOAT f :: COMMA :: rest' -> collect_elements rest' (FLOAT f :: acc)
-        | FLOAT f :: rest' -> collect_elements rest' (FLOAT f :: acc)
-        | _ -> raise (ParseError "Malformed list literal")
+                match toks with
+                | RBRACKET :: rest' ->
+                    (match acc with
+                    | (INT _ :: _) ->
+                      Literal (IntListLit (List.rev_map (function INT i -> i | _ -> failwith "Expected int") acc)), rest'
+                    | (FLOAT _ :: _) ->
+                      Literal (FloatListLit (List.rev_map (function FLOAT f -> f | _ -> failwith "Expected float") acc)), rest'
+                    | _ -> raise (ParseError "Empty or mixed-type list not yet supported"))
+                | INT i :: COMMA :: rest' -> collect_elements rest' (INT i :: acc)
+                | INT i :: rest' -> collect_elements rest' (INT i :: acc)
+                | FLOAT f :: COMMA :: rest' -> collect_elements rest' (FLOAT f :: acc)
+                | FLOAT f :: rest' -> collect_elements rest' (FLOAT f :: acc)
+                | MINUS :: INT i :: COMMA :: rest' -> collect_elements rest' (INT (-i) :: acc)
+                | MINUS :: INT i :: rest' -> collect_elements rest' (INT (-i) :: acc)
+                | MINUS :: FLOAT f :: COMMA :: rest' -> collect_elements rest' (FLOAT (-. f) :: acc)
+                | MINUS :: FLOAT f :: rest' -> collect_elements rest' (FLOAT (-. f) :: acc)
+                | _ -> raise (ParseError "Malformed list literal")
         in
         let (literal_expr, rest') = collect_elements rest [] in
         parse_binop literal_expr rest'
@@ -163,6 +166,15 @@ and parse_stmt tokens =
                 | _ ->
                 (If (cond_expr, then_branch, None), rest3))
         | _ -> raise (ParseError "Expected ')' after condition"))
+    | ID id :: LBRACKET :: rest ->
+        let (index_expr, rest1) = parse_expr rest in
+        (match rest1 with
+        | RBRACKET :: ASSIGN :: rest2 ->
+                let (value_expr, rest3) = parse_expr rest2 in
+                (match rest3 with
+                | SEMI :: rest4 -> (ListAssign(id, index_expr, value_expr), rest4)
+                | _ -> raise (ParseError "Expected ';' after list assignment"))
+        | _ -> raise (ParseError "Expected ']' after index"))
     (* TODO:
        - Variable declarations with explicit types
        - Function declarations
