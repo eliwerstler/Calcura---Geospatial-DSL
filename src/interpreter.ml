@@ -8,7 +8,8 @@ type value =
   | StringVal of string
   | IntList of int list
   | FloatList of float list
-
+  | IntTuple of int list
+  | FloatTuple of float list
 
 module Env = Map.Make(String)
 
@@ -40,8 +41,11 @@ let rec eval_expr (e : expr) : value =
     | Literal (FloatLit f) -> FloatVal f
     | Literal (StringLit s) -> StringVal s
     | Literal (BoolLit b) -> BoolVal b
+    | Literal (CharLit c) -> StringVal (String.make 1 c)
     | Literal (IntListLit iL) -> IntList iL
     | Literal (FloatListLit fL) -> FloatList fL
+    | Literal (IntTupleLit iT) -> IntTuple iT
+    | Literal (FloatTupleLit fT) -> FloatTuple fT
     | ListExpr exprs ->
         let values = List.map eval_expr exprs in
         (match values with
@@ -148,6 +152,46 @@ let rec eval_expr (e : expr) : value =
          | StringVal s1, StringVal s2 -> IntVal (if s1 <> s2 then 1 else 0)
          | _ -> failwith "Type mismatch in inequality check")
 
+    | Binop (e1, Leq, e2) ->
+        let v1 = eval_expr e1 in
+        let v2 = eval_expr e2 in
+        (match (v1, v2) with
+        | IntVal i1, IntVal i2 -> IntVal (if i1 <= i2 then 1 else 0)
+        | FloatVal f1, FloatVal f2 -> IntVal (if f1 <= f2 then 1 else 0)
+        | IntVal i, FloatVal f -> IntVal (if float_of_int i <= f then 1 else 0)
+        | FloatVal f, IntVal i -> IntVal (if f <= float_of_int i then 1 else 0)
+        | _ -> failwith "Type error in '<=' comparison")
+
+    | Binop (e1, Geq, e2) ->
+        let v1 = eval_expr e1 in
+        let v2 = eval_expr e2 in
+        (match (v1, v2) with
+        | IntVal i1, IntVal i2 -> IntVal (if i1 >= i2 then 1 else 0)
+        | FloatVal f1, FloatVal f2 -> IntVal (if f1 >= f2 then 1 else 0)
+        | IntVal i, FloatVal f -> IntVal (if float_of_int i >= f then 1 else 0)
+        | FloatVal f, IntVal i -> IntVal (if f >= float_of_int i then 1 else 0)
+        | _ -> failwith "Type error in '>=' comparison")
+
+    | Binop (e1, And, e2) ->
+        let v1 = eval_expr e1 in
+        let v2 = eval_expr e2 in
+        (match (v1, v2) with
+        | BoolVal b1, BoolVal b2 -> BoolVal (b1 && b2)
+        | _ -> failwith "Type error: '&&' requires boolean operands")
+
+    | Binop (e1, Or, e2) ->
+        let v1 = eval_expr e1 in
+        let v2 = eval_expr e2 in
+        (match (v1, v2) with
+        | BoolVal b1, BoolVal b2 -> BoolVal (b1 || b2)
+        | _ -> failwith "Type error: '||' requires boolean operands")
+
+    | Unop (Not, e) ->
+        let v = eval_expr e in
+        (match v with
+        | BoolVal b -> BoolVal (not b)
+        | _ -> failwith "Type error: Not requires a boolean")
+
     | Transform(list_expr, from_expr, to_expr) ->
         let list_val = eval_expr list_expr in
         let from_val = eval_expr from_expr in
@@ -200,6 +244,12 @@ let rec eval_stmt = function
       | FloatList fL ->
           let s = "[" ^ String.concat ", " (List.map string_of_float fL) ^ "]" in
           print_endline s
+      | IntTuple iT ->  (* Handle IntTuple *)
+        let s = "(" ^ String.concat ", " (List.map string_of_int iT) ^ ")" in
+        print_endline s
+      | FloatTuple fT ->  (* Handle FloatTuple *)
+        let s = "(" ^ String.concat ", " (List.map string_of_float fT) ^ ")" in
+        print_endline s
       )
   | If (cond_expr, then_branch, else_opt) ->
       (match eval_expr cond_expr with

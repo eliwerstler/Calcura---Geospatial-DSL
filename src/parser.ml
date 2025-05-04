@@ -21,6 +21,10 @@ let rec parse_expr tokens =
         parse_binop (Literal (IntLit i)) rest
     | FLOAT f :: rest ->
         parse_binop (Literal (FloatLit f)) rest
+    | MINUS :: INT i :: rest ->
+        parse_binop (Literal (IntLit (-i))) rest
+    | MINUS :: FLOAT f :: rest ->
+        parse_binop (Literal (FloatLit (-.f))) rest
     | STRING s :: rest ->
         parse_binop (Literal (StringLit s)) rest
     | ID id :: rest ->
@@ -79,11 +83,22 @@ let rec parse_expr tokens =
                 | _ -> raise (ParseError "Expected 'to=' argument in transform"))
         | _ -> raise (ParseError "Expected 'from=' argument in transform"))
     | LPAREN :: rest ->
-            let (expr, rest') = parse_expr rest in
-            (match rest' with
-            | RPAREN :: rest'' ->
-                parse_binop expr rest''
-            | _ -> raise (ParseError "Expected closing parenthesis"))
+        let rec parse_tuple_elements toks acc =
+            match toks with
+            | RPAREN :: rest' -> (List.rev acc, rest') (* End of tuple *)
+            | COMMA :: rest' -> parse_tuple_elements rest' acc (* Skip commas *)
+            | _ ->
+                let (expr, rest') = parse_expr toks in
+                parse_tuple_elements rest' (expr :: acc)
+        in
+        let (elements, rest') = parse_tuple_elements rest [] in
+        (match elements with
+        | [] -> raise (ParseError "Empty tuple is not allowed")
+        | (Literal (IntLit _) :: _) when List.for_all (function Literal (IntLit _) -> true | _ -> false) elements ->
+            parse_binop (Literal (IntTupleLit (List.map (function Literal (IntLit i) -> i | _ -> failwith "Expected int") elements))) rest'
+        | (Literal (FloatLit _) :: _) when List.for_all (function Literal (FloatLit _) -> true | _ -> false) elements ->
+            parse_binop (Literal (FloatTupleLit (List.map (function Literal (FloatLit f) -> f | _ -> failwith "Expected float") elements))) rest'
+        | _ -> raise (ParseError "Mixed-type tuples are not supported"))
     | SORT :: LPAREN :: rest ->
         let (list_expr, rest1) = parse_expr rest in
         (match rest1 with
