@@ -5,9 +5,11 @@ type primitive =
   | FloatLit of float
   | BoolLit of bool
   | CharLit of char
-  | StringLit of string  (* Add StringLit for string literals *)
+  | StringLit of string  
   | IntListLit of int list
   | FloatListLit of float list
+  | IntTupleLit of int list
+  | FloatTupleLit of float list
 
 type typ =
   | Int | Float | Bool | Char | String
@@ -19,16 +21,13 @@ type expr =
   | Binop of expr * binop * expr
   | Unop of unop * expr
   | ListExpr of expr list
-  | Call of identifier * expr list
-  | IntListLit of int list
-  | FloatListLit of float list
   | Index of expr * expr
   | Transform of expr * expr * expr
   | Sort of expr * bool option
 
 
 and binop = Add | Sub | Mult | Div | Mod | Equal | Neq | Less | Leq | Greater | Geq | And | Or
-and unop = Neg | Not
+and unop = Not
 
 type stmt =
   | Decl of identifier * typ option * expr
@@ -52,6 +51,8 @@ let rec string_of_expr = function
   | Literal (StringLit s) -> "\"" ^ s ^ "\""
   | Literal (IntListLit lst) -> "[" ^ String.concat ", " (List.map string_of_int lst) ^ "]"
   | Literal (FloatListLit lst) -> "[" ^ String.concat ", " (List.map string_of_float lst) ^ "]"
+  | Literal (IntTupleLit lst) -> "(" ^ String.concat ", " (List.map string_of_int lst) ^ ")"  
+  | Literal (FloatTupleLit lst) -> "(" ^ String.concat ", " (List.map string_of_float lst) ^ ")"  
   | Id id -> id
   | Binop (e1, op, e2) ->
       let op_str = match op with
@@ -62,11 +63,10 @@ let rec string_of_expr = function
       "(" ^ string_of_expr e1 ^ " " ^ op_str ^ " " ^ string_of_expr e2 ^ ")"
   | Unop (op, e) ->
       let op_str = match op with
-        | Neg -> "-" | Not -> "!"
+        | Not -> "!"
       in
       "(" ^ op_str ^ string_of_expr e ^ ")"
   | ListExpr lst -> "[" ^ String.concat ", " (List.map string_of_expr lst) ^ "]"
-  | Call (id, args) -> id ^ "(" ^ String.concat ", " (List.map string_of_expr args) ^ ")"
   | Transform (list_expr, from_expr, to_expr) ->
       "transform(" ^ string_of_expr list_expr ^ ", from=" ^ string_of_expr from_expr ^ ", to=" ^ string_of_expr to_expr ^ ")"
   | Index (list_expr, index_expr) ->
@@ -78,6 +78,8 @@ let rec string_of_expr = function
   let rec string_of_stmt = function
   | Decl (id, _, expr) -> "let " ^ id ^ " = " ^ string_of_expr expr ^ ";"
   | Assign (id, expr) -> id ^ " = " ^ string_of_expr expr ^ ";"
+  | ListAssign (id, index_expr, value_expr) ->
+    id ^ "[" ^ string_of_expr index_expr ^ "] = " ^ string_of_expr value_expr ^ ";"
   | Expr expr -> string_of_expr expr ^ ";"
   | Print expr -> "print(" ^ string_of_expr expr ^ ");"
   | If (cond, then_branch, else_branch) ->

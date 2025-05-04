@@ -21,15 +21,24 @@ let rec parse_expr tokens =
         parse_binop (Literal (IntLit i)) rest
     | FLOAT f :: rest ->
         parse_binop (Literal (FloatLit f)) rest
+    | MINUS :: INT i :: rest ->
+        parse_binop (Literal (IntLit (-i))) rest
+    | MINUS :: FLOAT f :: rest ->
+        parse_binop (Literal (FloatLit (-.f))) rest
     | STRING s :: rest ->
         parse_binop (Literal (StringLit s)) rest
     | ID id :: rest ->
         parse_binop (Id id) rest
+    | BOOL b :: rest ->
+        parse_binop (Literal (BoolLit b)) rest
+    | NOT :: rest ->
+        let (expr, rest') = parse_expr rest in
+        let result = Unop (Not, expr) in 
+        parse_binop result rest'
     | WGS84 :: rest ->
         parse_binop (Literal (StringLit "WGS84")) rest
     | UTM :: rest ->
         parse_binop (Literal (StringLit "UTM")) rest
-    | BOOL b :: rest -> parse_binop (Literal (BoolLit b)) rest
     | LBRACKET :: RBRACKET :: rest' ->
         parse_binop (Literal (IntListLit [])) rest'
     | LBRACKET :: rest ->
@@ -54,36 +63,80 @@ let rec parse_expr tokens =
         in
         let (literal_expr, rest') = collect_elements rest [] in
         parse_binop literal_expr rest'
+    | LPAREN :: rest ->
+        let rec parse_tuple_elements toks acc =
+            match toks with
+            | RPAREN :: rest' -> (List.rev acc, rest') (* End of tuple *)
+            | COMMA :: rest' -> parse_tuple_elements rest' acc (* Skip commas *)
+            | _ ->
+                let (expr, rest') = parse_expr toks in
+                parse_tuple_elements rest' (expr :: acc)
+        in
+        let (elements, rest') = parse_tuple_elements rest [] in
+        (match elements with
+        | [] -> raise (ParseError "Empty tuple is not allowed")
+        | (Literal (IntLit _) :: _) when List.for_all (function Literal (IntLit _) -> true | _ -> false) elements ->
+            parse_binop (Literal (IntTupleLit (List.map (function Literal (IntLit i) -> i | _ -> failwith "Expected int") elements))) rest'
+        | (Literal (FloatLit _) :: _) when List.for_all (function Literal (FloatLit _) -> true | _ -> false) elements ->
+            parse_binop (Literal (FloatTupleLit (List.map (function Literal (FloatLit f) -> f | _ -> failwith "Expected float") elements))) rest'
+        | _ -> raise (ParseError "Mixed-type tuples are not supported"))
     (* TODO:
-       - Boolean literals (true/false)
        - Character literals
        - Function calls
        - List operations (shift_left, shift_right, swap, etc.)
     *)
     | TRANSFORM :: LPAREN :: rest ->
-        (* print_endline "Parsing TRANSFORM expression"; *)
+        (* Parse the list expression *)
         let (list_expr, rest1) = parse_expr rest in
-        (*
-        print_endline ("Parsed list_expr: " ^ Ast.string_of_expr list_expr);
-        print_endline ("Tokens after parsing list_expr: " ^ String.concat " " (List.map Scanner.string_of_token rest1));
-        *)
-        (match rest1 with
-        | COMMA :: FROM :: ASSIGN :: rest2 ->
+        (match list_expr with
+        | Literal (FloatTupleLit [x1; x2]) -> (* Literal float tuple *)
+            (match rest1 with
+            | COMMA :: FROM :: ASSIGN :: rest2 ->
+                (* Parse the 'from' argument *)
                 let (from_expr, rest3) = parse_expr rest2 in
-                (match rest3 with
-                | COMMA :: TO :: ASSIGN :: rest4 ->
+                (match from_expr with
+                | Literal (StringLit "WGS84") | Literal (StringLit "UTM") -> (* Ensure it's a valid coordinate system *)
+                    (match rest3 with
+                    | COMMA :: TO :: ASSIGN :: rest4 ->
+                        (* Parse the 'to' argument *)
                         let (to_expr, rest5) = parse_expr rest4 in
-                        (match rest5 with
-                        | RPAREN :: rest6 -> parse_binop (Transform(list_expr, from_expr, to_expr)) rest6
-                        | _ -> raise (ParseError "Expected closing parenthesis after transform arguments"))
-                | _ -> raise (ParseError "Expected 'to=' argument in transform"))
-        | _ -> raise (ParseError "Expected 'from=' argument in transform"))
-    | LPAREN :: rest ->
-            let (expr, rest') = parse_expr rest in
-            (match rest' with
-            | RPAREN :: rest'' ->
-                parse_binop expr rest''
-            | _ -> raise (ParseError "Expected closing parenthesis"))
+                        (match to_expr with
+                        | Literal (StringLit "WGS84") | Literal (StringLit "UTM") -> (* Ensure it's a valid coordinate system *)
+                            (match rest5 with
+                            | RPAREN :: rest6 ->
+                                let transform_expr = Transform (list_expr, from_expr, to_expr) in
+                                print_endline (Ast.string_of_expr transform_expr); (* Debugging output *)
+                                (transform_expr, rest6)
+                            | _ -> raise (ParseError "Expected closing parenthesis after transform arguments"))
+                        | _ -> raise (ParseError "Expected 'to' to be either 'WGS84' or 'UTM'"))
+                    | _ -> raise (ParseError "Expected 'to=' argument in transform"))
+                | _ -> raise (ParseError "Expected 'from' to be either 'WGS84' or 'UTM'"))
+            | _ -> raise (ParseError "Expected 'from=' argument in transform"))
+        | Id _ -> (* Identifier that could resolve to a float tuple *)
+            (match rest1 with
+            | COMMA :: FROM :: ASSIGN :: rest2 ->
+                (* Parse the 'from' argument *)
+                let (from_expr, rest3) = parse_expr rest2 in
+                (match from_expr with
+                | Literal (StringLit "WGS84") | Literal (StringLit "UTM") -> (* Ensure it's a valid coordinate system *)
+                    (match rest3 with
+                    | COMMA :: TO :: ASSIGN :: rest4 ->
+                        (* Parse the 'to' argument *)
+                        let (to_expr, rest5) = parse_expr rest4 in
+                        (match to_expr with
+                        | Literal (StringLit "WGS84") | Literal (StringLit "UTM") -> (* Ensure it's a valid coordinate system *)
+                            (match rest5 with
+                            | RPAREN :: rest6 ->
+                                let transform_expr = Transform (list_expr, from_expr, to_expr) in
+                                print_endline (Ast.string_of_expr transform_expr); (* Debugging output *)
+                                (transform_expr, rest6)
+                            | _ -> raise (ParseError "Expected closing parenthesis after transform arguments"))
+                        | _ -> raise (ParseError "Expected 'to' to be either 'WGS84' or 'UTM'"))
+                    | _ -> raise (ParseError "Expected 'to=' argument in transform"))
+                | _ -> raise (ParseError "Expected 'from' to be either 'WGS84' or 'UTM'"))
+            | _ -> raise (ParseError "Expected 'from=' argument in transform"))
+        | _ -> raise (ParseError "Expected list_expr to be a FloatTuple or an Id"))
+
     | SORT :: LPAREN :: rest ->
         let (list_expr, rest1) = parse_expr rest in
         (match rest1 with
@@ -117,12 +170,24 @@ and parse_binop left tokens =
     | LT :: rest ->
             let (right, rest') = parse_expr rest in
             parse_binop (Binop (left, Less, right)) rest'
+    | LEQ :: rest ->
+        let (right, rest') = parse_expr rest in
+        parse_binop (Binop (left, Leq, right)) rest'
+    | GEQ :: rest ->
+        let (right, rest') = parse_expr rest in
+        parse_binop (Binop (left, Geq, right)) rest'
     | EQ :: rest ->
             let (right, rest') = parse_expr rest in
             parse_binop (Binop (left, Equal, right)) rest'
     | NEQ :: rest ->
             let (right, rest') = parse_expr rest in
             parse_binop (Binop (left, Neq, right)) rest'
+    | AND :: rest ->
+        let (right, rest') = parse_expr rest in
+        parse_binop (Binop (left, And, right)) rest'
+    | OR :: rest ->
+        let (right, rest') = parse_expr rest in
+        parse_binop (Binop (left, Or, right)) rest'
     | LBRACKET :: rest ->
             let (index_expr, rest') = parse_expr rest in
             (match rest' with
@@ -130,8 +195,6 @@ and parse_binop left tokens =
                 parse_binop (Index (left, index_expr)) rest''
                 | _ -> raise (ParseError "Expected ']' after index"))
     (* TODO:
-       - Comparison operators (==, !=, <, >, <=, >=)
-       - Logical operators (and, or)
        - Type casting with 'as'
     *)
     | _ -> (left, tokens)

@@ -165,6 +165,11 @@ let tokenize (input: string) : token list =
           tokenize_helper (i + 2) (GEQ :: acc)
         else
           tokenize_helper (i + 1) (GT :: acc)
+    | '!' ->
+      if i + 1 < length && input.[i + 1] = '=' then
+        tokenize_helper (i + 2) (NEQ :: acc)
+      else
+        raise (LexError "Unexpected character: '!'")
     | '(' -> tokenize_helper (i + 1) (LPAREN :: acc)
     | ')' -> tokenize_helper (i + 1) (RPAREN :: acc)
     | ';' -> tokenize_helper (i + 1) (SEMI :: acc)
