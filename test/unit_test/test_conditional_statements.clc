@@ -112,3 +112,4 @@ if (not x == 1) {
   print("yes");
 }
 
+// TODO: x == 10 and y == 11 doesn't work cuz parser precedence. It reads "10 && (y == 11)"

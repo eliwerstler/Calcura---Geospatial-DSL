@@ -16,10 +16,10 @@ module Env = Map.Make(String)
 let env : value Env.t ref = ref Env.empty
 
 let transform_list lst from_system to_system =
-  match (from_system, to_system) with
-  | "WGS84", "UTM" -> List.map (fun x -> x + 1) lst
-  | "UTM", "WGS84" -> List.map (fun x -> x - 1) lst
-  | _ -> failwith "Unsupported transformation"
+  match (from_system, to_system, lst) with
+  | "WGS84", "UTM", FloatTuple xs -> FloatTuple (List.map (fun x -> x +. 1.0) xs)
+  | "UTM", "WGS84", FloatTuple xs -> FloatTuple (List.map (fun x -> x -. 1.0) xs)
+  | _ -> failwith "Unsupported transformation or invalid arguments"
 
 let sort_list list_val ascending =
   match list_val with
@@ -204,16 +204,16 @@ let rec eval_expr (e : expr) : value =
         | BoolVal b -> BoolVal (not b)
         | _ -> failwith "Type error: Not requires a boolean")
 
-    | Transform(list_expr, from_expr, to_expr) ->
+    | Transform (list_expr, from_expr, to_expr) ->
         let list_val = eval_expr list_expr in
         let from_val = eval_expr from_expr in
         let to_val = eval_expr to_expr in
         (match (list_val, from_val, to_val) with
-        | IntList lst, StringVal "WGS84", StringVal "UTM" ->
-            IntList (transform_list lst "WGS84" "UTM")
-        | IntList lst, StringVal "UTM", StringVal "WGS84" ->
-            IntList (transform_list lst "UTM" "WGS84")
-        | _ -> failwith "Invalid arguments for transform")
+        | FloatTuple lst, StringVal "WGS84", StringVal "UTM" ->
+            transform_list (FloatTuple lst) "WGS84" "UTM"
+        | FloatTuple lst, StringVal "UTM", StringVal "WGS84" ->
+            transform_list (FloatTuple lst) "UTM" "WGS84"
+        | _ -> failwith "Invalid arguments for transform: Expected a float tuple and valid coordinate systems")
 
     | Sort (list_expr, ascending_opt) ->
         let list_val = eval_expr list_expr in
@@ -235,7 +235,8 @@ let rec eval_stmt = function
       let value = eval_expr expr in
       env := Env.add name value !env
   | Expr e ->
-      ignore (eval_expr e)
+      let result = eval_expr e in
+      env := Env.add "last_result" result !env
   | Print e ->
       (match eval_expr e with
       | IntVal i ->

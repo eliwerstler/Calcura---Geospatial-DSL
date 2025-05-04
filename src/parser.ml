@@ -63,29 +63,6 @@ let rec parse_expr tokens =
         in
         let (literal_expr, rest') = collect_elements rest [] in
         parse_binop literal_expr rest'
-    (* TODO:
-       - Character literals
-       - Function calls
-       - List operations (shift_left, shift_right, swap, etc.)
-    *)
-    | TRANSFORM :: LPAREN :: rest ->
-        (* print_endline "Parsing TRANSFORM expression"; *)
-        let (list_expr, rest1) = parse_expr rest in
-        (*
-        print_endline ("Parsed list_expr: " ^ Ast.string_of_expr list_expr);
-        print_endline ("Tokens after parsing list_expr: " ^ String.concat " " (List.map Scanner.string_of_token rest1));
-        *)
-        (match rest1 with
-        | COMMA :: FROM :: ASSIGN :: rest2 ->
-                let (from_expr, rest3) = parse_expr rest2 in
-                (match rest3 with
-                | COMMA :: TO :: ASSIGN :: rest4 ->
-                        let (to_expr, rest5) = parse_expr rest4 in
-                        (match rest5 with
-                        | RPAREN :: rest6 -> parse_binop (Transform(list_expr, from_expr, to_expr)) rest6
-                        | _ -> raise (ParseError "Expected closing parenthesis after transform arguments"))
-                | _ -> raise (ParseError "Expected 'to=' argument in transform"))
-        | _ -> raise (ParseError "Expected 'from=' argument in transform"))
     | LPAREN :: rest ->
         let rec parse_tuple_elements toks acc =
             match toks with
@@ -103,6 +80,63 @@ let rec parse_expr tokens =
         | (Literal (FloatLit _) :: _) when List.for_all (function Literal (FloatLit _) -> true | _ -> false) elements ->
             parse_binop (Literal (FloatTupleLit (List.map (function Literal (FloatLit f) -> f | _ -> failwith "Expected float") elements))) rest'
         | _ -> raise (ParseError "Mixed-type tuples are not supported"))
+    (* TODO:
+       - Character literals
+       - Function calls
+       - List operations (shift_left, shift_right, swap, etc.)
+    *)
+    | TRANSFORM :: LPAREN :: rest ->
+        (* Parse the list expression *)
+        let (list_expr, rest1) = parse_expr rest in
+        (match list_expr with
+        | Literal (FloatTupleLit [x1; x2]) -> (* Literal float tuple *)
+            (match rest1 with
+            | COMMA :: FROM :: ASSIGN :: rest2 ->
+                (* Parse the 'from' argument *)
+                let (from_expr, rest3) = parse_expr rest2 in
+                (match from_expr with
+                | Literal (StringLit "WGS84") | Literal (StringLit "UTM") -> (* Ensure it's a valid coordinate system *)
+                    (match rest3 with
+                    | COMMA :: TO :: ASSIGN :: rest4 ->
+                        (* Parse the 'to' argument *)
+                        let (to_expr, rest5) = parse_expr rest4 in
+                        (match to_expr with
+                        | Literal (StringLit "WGS84") | Literal (StringLit "UTM") -> (* Ensure it's a valid coordinate system *)
+                            (match rest5 with
+                            | RPAREN :: rest6 ->
+                                let transform_expr = Transform (list_expr, from_expr, to_expr) in
+                                print_endline (Ast.string_of_expr transform_expr); (* Debugging output *)
+                                (transform_expr, rest6)
+                            | _ -> raise (ParseError "Expected closing parenthesis after transform arguments"))
+                        | _ -> raise (ParseError "Expected 'to' to be either 'WGS84' or 'UTM'"))
+                    | _ -> raise (ParseError "Expected 'to=' argument in transform"))
+                | _ -> raise (ParseError "Expected 'from' to be either 'WGS84' or 'UTM'"))
+            | _ -> raise (ParseError "Expected 'from=' argument in transform"))
+        | Id _ -> (* Identifier that could resolve to a float tuple *)
+            (match rest1 with
+            | COMMA :: FROM :: ASSIGN :: rest2 ->
+                (* Parse the 'from' argument *)
+                let (from_expr, rest3) = parse_expr rest2 in
+                (match from_expr with
+                | Literal (StringLit "WGS84") | Literal (StringLit "UTM") -> (* Ensure it's a valid coordinate system *)
+                    (match rest3 with
+                    | COMMA :: TO :: ASSIGN :: rest4 ->
+                        (* Parse the 'to' argument *)
+                        let (to_expr, rest5) = parse_expr rest4 in
+                        (match to_expr with
+                        | Literal (StringLit "WGS84") | Literal (StringLit "UTM") -> (* Ensure it's a valid coordinate system *)
+                            (match rest5 with
+                            | RPAREN :: rest6 ->
+                                let transform_expr = Transform (list_expr, from_expr, to_expr) in
+                                print_endline (Ast.string_of_expr transform_expr); (* Debugging output *)
+                                (transform_expr, rest6)
+                            | _ -> raise (ParseError "Expected closing parenthesis after transform arguments"))
+                        | _ -> raise (ParseError "Expected 'to' to be either 'WGS84' or 'UTM'"))
+                    | _ -> raise (ParseError "Expected 'to=' argument in transform"))
+                | _ -> raise (ParseError "Expected 'from' to be either 'WGS84' or 'UTM'"))
+            | _ -> raise (ParseError "Expected 'from=' argument in transform"))
+        | _ -> raise (ParseError "Expected list_expr to be a FloatTuple or an Id"))
+
     | SORT :: LPAREN :: rest ->
         let (list_expr, rest1) = parse_expr rest in
         (match rest1 with
