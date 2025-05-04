@@ -33,7 +33,8 @@ let rec parse_expr tokens =
         parse_binop (Literal (BoolLit b)) rest
     | NOT :: rest ->
         let (expr, rest') = parse_expr rest in
-        parse_binop (Unop (Not, expr)) rest'
+        let result = Unop (Not, expr) in 
+        parse_binop result rest'
     | WGS84 :: rest ->
         parse_binop (Literal (StringLit "WGS84")) rest
     | UTM :: rest ->

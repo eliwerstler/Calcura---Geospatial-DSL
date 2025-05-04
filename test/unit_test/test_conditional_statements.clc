@@ -102,7 +102,13 @@ if (false or true) {
   print("yes");
 }
 
-if not false {
+if (not not true) {
   // yes
   print("yes");
 }
+
+if (not x == 1) {
+  // yes
+  print("yes");
+}
+
