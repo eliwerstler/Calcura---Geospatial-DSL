@@ -58,3 +58,51 @@ if (num > 5) {
 else {
   print("too low");
 }
+
+let x = 10;
+let y = 11;
+
+if (x <= 11) {
+  // 10
+  print(x);
+}
+
+if (x >= 10) {
+  // true
+  print("true");
+}
+
+if (x <= 19) {
+  // true
+  print("true");
+}
+
+if (x == 10) {
+  // yes
+  print("yes");
+}
+
+if (y == 11) {
+  // yes
+  print("yes");
+}
+
+if (y != 3) {
+  // yes
+  print("yes");
+}
+
+if (true and true) {
+  // yes
+  print("yes");
+}
+
+if (false or true) {
+  // yes
+  print("yes");
+}
+
+if not false {
+  // yes
+  print("yes");
+}

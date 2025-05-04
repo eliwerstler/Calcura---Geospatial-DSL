@@ -31,6 +31,16 @@ let sort_list list_val ascending =
       FloatList (if ascending then sorted else List.rev sorted)
   | _ -> failwith "Sort only works with lists of integers or floats"
 
+let rec string_of_value = function
+  | IntVal i -> string_of_int i
+  | FloatVal f -> string_of_float f
+  | BoolVal b -> string_of_bool b
+  | StringVal s -> "\"" ^ s ^ "\""
+  | IntList lst -> "[" ^ String.concat ", " (List.map string_of_int lst) ^ "]"
+  | FloatList lst -> "[" ^ String.concat ", " (List.map string_of_float lst) ^ "]"
+  | IntTuple lst -> "(" ^ String.concat ", " (List.map string_of_int lst) ^ ")"
+  | FloatTuple lst -> "(" ^ String.concat ", " (List.map string_of_float lst) ^ ")"
+
 let rec eval_expr (e : expr) : value =
     match e with
     | Id name ->
@@ -116,60 +126,62 @@ let rec eval_expr (e : expr) : value =
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
         (match (v1, v2) with
-         | IntVal i1, IntVal i2 -> IntVal (if i1 > i2 then 1 else 0)
-         | FloatVal f1, FloatVal f2 -> IntVal (if f1 > f2 then 1 else 0)
-         | IntVal i, FloatVal f -> IntVal (if float_of_int i > f then 1 else 0)
-         | FloatVal f, IntVal i -> IntVal (if f > float_of_int i then 1 else 0)
-         | _ -> failwith "Type error in '>' comparison")
+        | IntVal i1, IntVal i2 -> BoolVal (i1 > i2)
+        | FloatVal f1, FloatVal f2 -> BoolVal (f1 > f2)
+        | IntVal i, FloatVal f -> BoolVal (float_of_int i > f)
+        | FloatVal f, IntVal i -> BoolVal (f > float_of_int i)
+        | _ -> failwith "Type error in '>' comparison")
 
     | Binop (e1, Less, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
         (match (v1, v2) with
-         | IntVal i1, IntVal i2 -> IntVal (if i1 < i2 then 1 else 0)
-         | FloatVal f1, FloatVal f2 -> IntVal (if f1 < f2 then 1 else 0)
-         | IntVal i, FloatVal f -> IntVal (if float_of_int i < f then 1 else 0)
-         | FloatVal f, IntVal i -> IntVal (if f < float_of_int i then 1 else 0)
-         | _ -> failwith "Type error in '<' comparison")
+        | IntVal i1, IntVal i2 -> BoolVal (i1 < i2)
+        | FloatVal f1, FloatVal f2 -> BoolVal (f1 < f2)
+        | IntVal i, FloatVal f -> BoolVal (float_of_int i < f)
+        | FloatVal f, IntVal i -> BoolVal (f < float_of_int i)
+        | _ -> failwith "Type error in '<' comparison")
 
     | Binop (e1, Equal, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
         (match (v1, v2) with
-         | IntVal i1, IntVal i2 -> IntVal (if i1 = i2 then 1 else 0)
-         | FloatVal f1, FloatVal f2 -> IntVal (if f1 = f2 then 1 else 0)
-         | IntVal i, FloatVal f | FloatVal f, IntVal i -> IntVal (if float_of_int i = f then 1 else 0)
-         | StringVal s1, StringVal s2 -> IntVal (if s1 = s2 then 1 else 0)
-         | _ -> failwith "Type mismatch in equality check")
+        | IntVal i1, IntVal i2 -> BoolVal (i1 = i2)
+        | FloatVal f1, FloatVal f2 -> BoolVal (f1 = f2)
+        | IntVal i, FloatVal f | FloatVal f, IntVal i -> BoolVal (float_of_int i = f)
+        | StringVal s1, StringVal s2 -> BoolVal (s1 = s2)
+        | BoolVal b1, BoolVal b2 -> BoolVal (b1 = b2)
+        | _ -> failwith "Type mismatch in equality check")
 
     | Binop (e1, Neq, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
         (match (v1, v2) with
-         | IntVal i1, IntVal i2 -> IntVal (if i1 <> i2 then 1 else 0)
-         | FloatVal f1, FloatVal f2 -> IntVal (if f1 <> f2 then 1 else 0)
-         | IntVal i, FloatVal f | FloatVal f, IntVal i -> IntVal (if float_of_int i <> f then 1 else 0)
-         | StringVal s1, StringVal s2 -> IntVal (if s1 <> s2 then 1 else 0)
-         | _ -> failwith "Type mismatch in inequality check")
+        | IntVal i1, IntVal i2 -> BoolVal (i1 <> i2)
+        | FloatVal f1, FloatVal f2 -> BoolVal (f1 <> f2)
+        | IntVal i, FloatVal f | FloatVal f, IntVal i -> BoolVal (float_of_int i <> f)
+        | StringVal s1, StringVal s2 -> BoolVal (s1 <> s2)
+        | BoolVal b1, BoolVal b2 -> BoolVal (b1 <> b2)
+        | _ -> failwith "Type mismatch in inequality check")
 
     | Binop (e1, Leq, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
         (match (v1, v2) with
-        | IntVal i1, IntVal i2 -> IntVal (if i1 <= i2 then 1 else 0)
-        | FloatVal f1, FloatVal f2 -> IntVal (if f1 <= f2 then 1 else 0)
-        | IntVal i, FloatVal f -> IntVal (if float_of_int i <= f then 1 else 0)
-        | FloatVal f, IntVal i -> IntVal (if f <= float_of_int i then 1 else 0)
+        | IntVal i1, IntVal i2 -> BoolVal (i1 <= i2)
+        | FloatVal f1, FloatVal f2 -> BoolVal (f1 <= f2)
+        | IntVal i, FloatVal f -> BoolVal (float_of_int i <= f)
+        | FloatVal f, IntVal i -> BoolVal (f <= float_of_int i)
         | _ -> failwith "Type error in '<=' comparison")
 
     | Binop (e1, Geq, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
         (match (v1, v2) with
-        | IntVal i1, IntVal i2 -> IntVal (if i1 >= i2 then 1 else 0)
-        | FloatVal f1, FloatVal f2 -> IntVal (if f1 >= f2 then 1 else 0)
-        | IntVal i, FloatVal f -> IntVal (if float_of_int i >= f then 1 else 0)
-        | FloatVal f, IntVal i -> IntVal (if f >= float_of_int i then 1 else 0)
+        | IntVal i1, IntVal i2 -> BoolVal (i1 >= i2)
+        | FloatVal f1, FloatVal f2 -> BoolVal (f1 >= f2)
+        | IntVal i, FloatVal f -> BoolVal (float_of_int i >= f)
+        | FloatVal f, IntVal i -> BoolVal (f >= float_of_int i)
         | _ -> failwith "Type error in '>=' comparison")
 
     | Binop (e1, And, e2) ->
