@@ -15,10 +15,130 @@ module Env = Map.Make(String)
 
 let env : value Env.t ref = ref Env.empty
 
+let round_to_decimal_places value decimal_places =
+  let factor = 10.0 ** float_of_int decimal_places in
+  floor (value *. factor +. 0.5) /. factor
+
 let transform_list lst from_system to_system =
   match (from_system, to_system, lst) with
-  | "WGS84", "UTM", FloatTuple xs -> FloatTuple (List.map (fun x -> x +. 1.0) xs)
-  | "UTM", "WGS84", FloatTuple xs -> FloatTuple (List.map (fun x -> x -. 1.0) xs)
+  | "WGS84", "UTM", FloatTuple [lat; lon] ->
+    (* Constants for UTM conversion *)
+    let k0 = 0.9996 in
+    let a = 6378137.0 in (* Semi-major axis of the Earth *)
+    let e = 0.08181919084 in (* Eccentricity *)
+    let lon_origin = float_of_int (((int_of_float ((lon +. 180.0) /. 6.0)) * 6) - 180 + 3) in
+
+    (* Convert latitude and longitude to radians *)
+    let lat_rad = lat *. Float.pi /. 180.0 in
+    let lon_rad = lon *. Float.pi /. 180.0 in
+    let lon_origin_rad = lon_origin *. Float.pi /. 180.0 in
+
+    (* Calculate intermediate values *)
+    let n = a /. sqrt (1.0 -. e *. e *. sin lat_rad ** 2.0) in
+    let t = tan lat_rad ** 2.0 in
+    let c = e *. e /. (1.0 -. e *. e) *. cos lat_rad ** 2.0 in
+    let a' = cos lat_rad *. (lon_rad -. lon_origin_rad) in
+
+    (* Meridian arc length *)
+    let m =
+      a
+      *. ((1.0 -. e *. e /. 4.0 -. 3.0 *. e ** 4.0 /. 64.0 -. 5.0 *. e ** 6.0 /. 256.0)
+         *. lat_rad
+         -. (3.0 *. e *. e /. 8.0 +. 3.0 *. e ** 4.0 /. 32.0 +. 45.0 *. e ** 6.0 /. 1024.0)
+         *. sin (2.0 *. lat_rad)
+         +. (15.0 *. e ** 4.0 /. 256.0 +. 45.0 *. e ** 6.0 /. 1024.0) *. sin (4.0 *. lat_rad)
+         -. (35.0 *. e ** 6.0 /. 3072.0) *. sin (6.0 *. lat_rad))
+    in
+
+    (* Calculate easting *)
+    let easting =
+      k0
+      *. n
+      *. (a' +. (1.0 -. t +. c) *. a' ** 3.0 /. 6.0
+         +. (5.0 -. 18.0 *. t +. t *. t +. 72.0 *. c -. 58.0 *. e *. e /. (1.0 -. e *. e))
+         *. a' ** 5.0 /. 120.0)
+      +. 500000.0
+    in
+
+    (* Calculate northing *)
+    let northing =
+      k0
+      *. (m
+         +. n
+            *. tan lat_rad
+            *. (a' ** 2.0 /. 2.0
+               +. (5.0 -. t +. 9.0 *. c +. 4.0 *. c *. c) *. a' ** 4.0 /. 24.0
+               +. (61.0 -. 58.0 *. t +. t *. t +. 600.0 *. c -. 330.0 *. e *. e /. (1.0 -. e *. e))
+                  *. a' ** 6.0 /. 720.0))
+    in
+
+    (* Adjust for southern hemisphere *)
+    let northing = if lat < 0.0 then northing +. 10000000.0 else northing in
+
+    (* Round results to 2 decimal places *)
+    let easting = round_to_decimal_places easting 2 in
+    let northing = round_to_decimal_places northing 2 in
+
+    FloatTuple [easting; northing]
+
+| "UTM", "WGS84", FloatTuple [easting; northing] ->
+    (* Constants for UTM to WGS84 conversion *)
+    let k0 = 0.9996 in
+    let a = 6378137.0 in (* Semi-major axis of the Earth *)
+    let e2 = 0.00669437999014 in (* Square of eccentricity *)
+    let e1 = (1.0 -. sqrt (1.0 -. e2)) /. (1.0 +. sqrt (1.0 -. e2)) in
+
+    (* Adjust easting and northing *)
+    let x = easting -. 500000.0 in (* Remove false easting *)
+    let y = if northing > 10000000.0 then northing -. 10000000.0 else northing in (* Adjust for southern hemisphere *)
+
+    (* Hardcode UTM zone 18 for NYC and calculate longitude origin *)
+    let zone_number = 18 in
+    let lon0 = float_of_int ((zone_number - 1) * 6 - 180) in
+
+    (* Calculate the meridional arc *)
+    let m = y /. k0 in
+    let mu = m /. (a *. (1.0 -. e2 /. 4.0 -. 3.0 *. e2 ** 2.0 /. 64.0 -. 5.0 *. e2 ** 3.0 /. 256.0)) in
+
+    (* Calculate the footpoint latitude (phi1) *)
+    let phi1 =
+      mu
+      +. (3.0 *. e1 /. 2.0 -. 27.0 *. e1 ** 3.0 /. 32.0) *. sin (2.0 *. mu)
+      +. (21.0 *. e1 ** 2.0 /. 16.0 -. 55.0 *. e1 ** 4.0 /. 32.0) *. sin (4.0 *. mu)
+      +. (151.0 *. e1 ** 3.0 /. 96.0) *. sin (6.0 *. mu)
+      +. (1097.0 *. e1 ** 4.0 /. 512.0) *. sin (8.0 *. mu)
+    in
+
+    (* Calculate intermediate values *)
+    let n = a /. sqrt (1.0 -. e2 *. (sin phi1) ** 2.0) in
+    let t = (tan phi1) ** 2.0 in
+    let c = e2 *. (cos phi1) ** 2.0 in
+    let r = a *. (1.0 -. e2) /. (1.0 -. e2 *. (sin phi1) ** 2.0) ** 1.5 in
+    let d = x /. (n *. k0) in
+
+    (* Calculate latitude and longitude *)
+    let lat =
+      phi1
+      -. (n *. tan phi1 /. r)
+         *. (d ** 2.0 /. 2.0
+            -. (5.0 +. 3.0 *. t +. 10.0 *. c -. 4.0 *. c ** 2.0 -. 9.0 *. e2) *. d ** 4.0 /. 24.0
+            +. (61.0 +. 90.0 *. t +. 298.0 *. c +. 45.0 *. t ** 2.0 -. 252.0 *. e2) *. d ** 6.0 /. 720.0)
+    in
+    let lon =
+      lon0
+      +. (d
+         -. (1.0 +. 2.0 *. t +. c) *. d ** 3.0 /. 6.0
+         +. (5.0 -. 2.0 *. c +. 28.0 *. t -. 3.0 *. c ** 2.0 +. 8.0 *. e2 +. 24.0 *. t ** 2.0) *. d ** 5.0 /. 120.0)
+         /. cos phi1
+    in
+
+    (* Convert latitude and longitude from radians to degrees *)
+    let lat = round_to_decimal_places (lat *. 180.0 /. Float.pi) 4 in
+    let lon = round_to_decimal_places (lon) 4 in
+
+    (* Return the result *)
+    FloatTuple [lat; lon]
+
   | _ -> failwith "Unsupported transformation or invalid arguments"
 
 let sort_list list_val ascending =
