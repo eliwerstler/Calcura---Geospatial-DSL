@@ -37,6 +37,7 @@ test-single: compile_sources
 	./$(TEST_EXEC) $(TEST)
 
 repl: compile_sources
+	echo '#use "src/interpreter.ml";;' > .ocamlinit
 	ocaml \
 		-I $(OUT_DIR) \
 		$(OUT_DIR)/ast.cmo \
