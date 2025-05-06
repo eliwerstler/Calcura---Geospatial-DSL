@@ -9,8 +9,10 @@ type value =
   | IntList of int list
   | FloatList of float list
 
-
 module Env = Map.Make(String)
+module FuncEnv = Map.Make(String)
+let func_env : (string list * stmt list) FuncEnv.t ref = ref FuncEnv.empty
+exception ReturnException of value option
 
 let env : value Env.t ref = ref Env.empty
 
@@ -142,10 +144,54 @@ let rec eval_expr (e : expr) : value =
          | IntList lst, StringVal "UTM", StringVal "WGS84" ->
              IntList (transform_list lst "UTM" "WGS84")
          | _ -> failwith "Invalid arguments for transform")
+    | Call (fn, args) ->
+        (* look up func def *)
+        let (params, body) =
+            try FuncEnv.find fn !func_env
+            with Not_found -> failwith ("Unknown function: " ^ fn)
+        in
+
+        (* check num of args *)
+        if List.length params <> List.length args then
+            failwith (fn ^ " expected "
+                        ^ string_of_int (List.length params)
+                        ^ " args, got "
+                        ^ string_of_int (List.length args));
+
+        (* eval each argument expr to val *)
+        let arg_vals = List.map eval_expr args in
+
+        (* save outer environemnt *)
+        let saved_env = !env in
+
+        (* create fresh environment, binds each param to its val *)
+        let new_env = 
+            List.fold_left2
+            (fun m param_name param_val -> Env.add param_name param_val m)
+            Env.empty
+            params
+            arg_vals
+        in
+        env := new_env;
+
+        (* execute func body *)
+        let returned =
+            try 
+                List.iter eval_stmt body; 
+                None
+            with ReturnException v_opt -> v_opt
+        in
+
+        (* restore outer environment *)
+        env := saved_env;
+
+        (match returned with
+         | Some v -> v
+         | None -> failwith ("Function " ^ fn ^ " did not return"))
 
     | _ -> failwith "unimplemented"
   
-let rec eval_stmt = function
+and eval_stmt = function
   | Decl (name, _, expr) ->
       let value = eval_expr expr in
       env := Env.add name value !env
@@ -174,6 +220,16 @@ let rec eval_stmt = function
       | BoolVal true -> List.iter eval_stmt then_branch
       | BoolVal false -> (match else_opt with Some else_branch -> List.iter eval_stmt else_branch | None -> ())
       | _ -> failwith "Condition must evaluate to an integer or boolean") 
+  | FuncDef (name, params, body) ->
+        func_env := FuncEnv.add name (params, body) !func_env
+  | Return opt_e ->
+        let v_opt = 
+            match opt_e with
+            | None -> None
+            | Some e -> Some (eval_expr e)
+        in
+        raise (ReturnException v_opt)
+
   | _ ->
       failwith "unimplemented"
 

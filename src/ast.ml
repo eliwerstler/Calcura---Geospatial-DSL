@@ -37,6 +37,7 @@ type stmt =
   | For of identifier * expr * stmt list
   | While of expr * stmt list
   | Return of expr option
+  | FuncDef of identifier * identifier list * stmt list
   | Print of expr
 
 type program = stmt list
