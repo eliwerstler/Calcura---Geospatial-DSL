@@ -201,6 +201,7 @@ let tokenize (input: string) : token list =
     | "not" -> NOT
     | "true" -> BOOL true
     | "false" -> BOOL false
+    | "avg" -> AVG
     | "sort" -> SORT
     | "transform" -> TRANSFORM
     | "from" -> FROM

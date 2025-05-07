@@ -5,7 +5,7 @@ type primitive =
   | FloatLit of float
   | BoolLit of bool
   | CharLit of char
-  | StringLit of string  
+  | StringLit of string
   | IntListLit of int list
   | FloatListLit of float list
   | IntTupleLit of int list
@@ -24,6 +24,7 @@ type expr =
   | Index of expr * expr
   | Transform of expr * expr * expr
   | Sort of expr * bool option
+  | Avg of expr
 
 
 and binop = Add | Sub | Mult | Div | Mod | Equal | Neq | Less | Leq | Greater | Geq | And | Or
@@ -51,8 +52,8 @@ let rec string_of_expr = function
   | Literal (StringLit s) -> "\"" ^ s ^ "\""
   | Literal (IntListLit lst) -> "[" ^ String.concat ", " (List.map string_of_int lst) ^ "]"
   | Literal (FloatListLit lst) -> "[" ^ String.concat ", " (List.map string_of_float lst) ^ "]"
-  | Literal (IntTupleLit lst) -> "(" ^ String.concat ", " (List.map string_of_int lst) ^ ")"  
-  | Literal (FloatTupleLit lst) -> "(" ^ String.concat ", " (List.map string_of_float lst) ^ ")"  
+  | Literal (IntTupleLit lst) -> "(" ^ String.concat ", " (List.map string_of_int lst) ^ ")"
+  | Literal (FloatTupleLit lst) -> "(" ^ String.concat ", " (List.map string_of_float lst) ^ ")"
   | Id id -> id
   | Binop (e1, op, e2) ->
       let op_str = match op with
@@ -71,6 +72,8 @@ let rec string_of_expr = function
       "transform(" ^ string_of_expr list_expr ^ ", from=" ^ string_of_expr from_expr ^ ", to=" ^ string_of_expr to_expr ^ ")"
   | Index (list_expr, index_expr) ->
       string_of_expr list_expr ^ "[" ^ string_of_expr index_expr ^ "]"
+  | Avg (list_expr) ->
+      "avg(" ^ string_of_expr list_expr ^ ")"
   | _ -> "Unknown expression"
 
 

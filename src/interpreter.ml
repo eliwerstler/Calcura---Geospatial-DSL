@@ -341,14 +341,30 @@ let rec eval_expr (e : expr) : value =
             | Some b -> b
             | None -> true
         in
-        match list_val with
+        (match list_val with
         | IntList lst ->
             let sorted = List.sort compare lst in
             IntList (if ascending then sorted else List.rev sorted)
         | FloatList lst ->
             let sorted = List.sort compare lst in
             FloatList (if ascending then sorted else List.rev sorted)
-        | _ -> failwith "Sort only supports lists containing elements of the same type, integers or floats."
+        | _ -> failwith "Sort only supports lists containing elements of the same type, integers or floats.")
+
+    | Avg list_expr ->
+        let list_val = eval_expr list_expr in
+        (match list_val with
+        | IntList lst ->
+            if List.length lst = 0 then FloatVal 0.0 (* Handle empty list *)
+            else
+                let sum = List.fold_left (+) 0 lst in
+                FloatVal (float_of_int sum /. float_of_int (List.length lst))
+        | FloatList lst ->
+            if List.length lst = 0 then FloatVal 0.0 (* Handle empty list *)
+            else
+                let sum = List.fold_left (+.) 0.0 lst in
+                let count = float_of_int (List.length lst) in
+                FloatVal (sum /. count)
+        | _ -> failwith "Average expects a list of integers or floats.")
 
 let rec eval_stmt = function
   | Decl (name, _, expr) ->
