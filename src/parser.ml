@@ -158,6 +158,26 @@ let rec parse_expr tokens =
         | RPAREN :: rest'' -> parse_binop (Median list_expr) rest''
         | _ -> raise (ParseError "Expected closing parenthesis ')' after median argument"))
 
+    | SHIFT_LEFT :: LPAREN :: rest ->
+        let (list_expr, rest1) = parse_expr rest in
+        (match rest1 with
+        | COMMA :: rest2 ->
+            let (n_expr, rest3) = parse_expr rest2 in
+            (match rest3 with RPAREN :: rest'' ->
+                parse_binop (ShiftLeft (list_expr, n_expr)) rest''
+            | _ -> raise (ParseError "Expected ')' after shift_left arguments"))
+        | _ -> raise (ParseError "Expected ',' in shift_left"))
+
+    | SHIFT_RIGHT :: LPAREN :: rest ->
+        let (list_expr, rest1) = parse_expr rest in
+        (match rest1 with
+        | COMMA :: rest2 ->
+            let (n_expr, rest3) = parse_expr rest2 in
+            (match rest3 with RPAREN :: rest'' ->
+                parse_binop (ShiftRight (list_expr, n_expr)) rest''
+            | _ -> raise (ParseError "Expected ')' after shift_right args"))
+        | _ -> raise (ParseError "Expected ',' in shift_right"))
+
     | _ -> raise (ParseError "Unexpected token in expression")
 
 and parse_binop left tokens =

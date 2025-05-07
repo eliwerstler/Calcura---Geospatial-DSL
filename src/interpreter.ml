@@ -161,6 +161,26 @@ let rec string_of_value = function
   | IntTuple lst -> "(" ^ String.concat ", " (List.map string_of_int lst) ^ ")"
   | FloatTuple lst -> "(" ^ String.concat ", " (List.map string_of_float lst) ^ ")"
 
+let shift_left_list lst n =
+    let len = List.length lst in
+    if len = 0 then lst else
+        let k = ((n mod len) + len) mod len in
+        let rec split_at i l =
+            if i = 0 then ([], l) else match l with
+            | [] -> ([], [])
+            | x::xs ->
+                let (pre, post) = split_at (i-1) xs in
+                (x::pre, post)
+        in
+        let pre, post = split_at k lst in
+        post @ pre
+
+let shift_right_list lst n =
+    let len = List.length lst in
+    if len = 0 then lst else
+    (* shifting right by n is left by (len - (n mod len)) *)
+    shift_left_list lst (len - (n mod len))
+
 let rec eval_expr (e : expr) : value =
     match e with
     | Id name ->
@@ -390,6 +410,23 @@ let rec eval_expr (e : expr) : value =
                 let hi = List.nth sorted (n/2)     in
                 FloatVal ((lo +. hi) /. 2.0)
         | _ -> failwith "Median expects a list of integers or floats.")
+
+    | ShiftLeft (list_e, n_e) ->
+        let list_v = eval_expr list_e in
+        let n_v    = eval_expr n_e in
+        (match (list_v, n_v) with
+        | IntList lst, IntVal n    -> IntList  (shift_left_list lst n)
+        | FloatList lst, IntVal n  -> FloatList(shift_left_list lst n)
+        | _ -> failwith "shift_left expects (list<int> or list<float>, int)")
+
+    | ShiftRight (list_e, n_e) ->
+        let list_v = eval_expr list_e in
+        let n_v    = eval_expr n_e in
+        (match (list_v, n_v) with
+        | IntList lst, IntVal n    -> IntList  (shift_right_list lst n)
+        | FloatList lst, IntVal n  -> FloatList(shift_right_list lst n)
+        | _ -> failwith "shift_right expects (list<int> or list<float>, int)")
+
 
 let rec eval_stmt = function
   | Decl (name, _, expr) ->
