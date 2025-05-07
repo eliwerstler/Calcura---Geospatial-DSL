@@ -354,17 +354,42 @@ let rec eval_expr (e : expr) : value =
         let list_val = eval_expr list_expr in
         (match list_val with
         | IntList lst ->
-            if List.length lst = 0 then FloatVal 0.0 (* Handle empty list *)
+            if List.length lst = 0 then FloatVal 0.0
             else
                 let sum = List.fold_left (+) 0 lst in
                 FloatVal (float_of_int sum /. float_of_int (List.length lst))
         | FloatList lst ->
-            if List.length lst = 0 then FloatVal 0.0 (* Handle empty list *)
+            if List.length lst = 0 then FloatVal 0.0
             else
                 let sum = List.fold_left (+.) 0.0 lst in
                 let count = float_of_int (List.length lst) in
                 FloatVal (sum /. count)
         | _ -> failwith "Average expects a list of integers or floats.")
+
+    | Median list_expr ->
+        let list_val = eval_expr list_expr in
+        (match list_val with
+        | IntList lst ->
+            let sorted = List.sort compare lst in
+            let n = List.length sorted in
+            if n = 0 then FloatVal 0.0
+            else if n mod 2 = 1 then
+                FloatVal (float_of_int (List.nth sorted (n/2)))
+            else
+                let lo = List.nth sorted (n/2 - 1) in
+                let hi = List.nth sorted (n/2)     in
+                FloatVal (((float_of_int lo) +. float_of_int hi) /. 2.0)
+        | FloatList lst ->
+            let sorted = List.sort compare lst in
+            let n = List.length sorted in
+            if n = 0 then FloatVal 0.0
+            else if n mod 2 = 1 then
+                FloatVal (List.nth sorted (n/2))
+            else
+                let lo = List.nth sorted (n/2 - 1) in
+                let hi = List.nth sorted (n/2)     in
+                FloatVal ((lo +. hi) /. 2.0)
+        | _ -> failwith "Median expects a list of integers or floats.")
 
 let rec eval_stmt = function
   | Decl (name, _, expr) ->
