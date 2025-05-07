@@ -203,6 +203,8 @@ let tokenize (input: string) : token list =
     | "false" -> BOOL false
     | "avg" -> AVG
     | "median" -> MEDIAN
+    | "shift_left" -> SHIFT_LEFT
+    | "shift_right" -> SHIFT_RIGHT
     | "sort" -> SORT
     | "transform" -> TRANSFORM
     | "from" -> FROM

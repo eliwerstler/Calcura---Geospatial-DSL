@@ -26,6 +26,8 @@ type expr =
   | Sort of expr * bool option
   | Avg of expr
   | Median of expr
+  | ShiftLeft of expr * expr
+  | ShiftRight of expr * expr
 
 
 and binop = Add | Sub | Mult | Div | Mod | Equal | Neq | Less | Leq | Greater | Geq | And | Or
@@ -77,6 +79,10 @@ let rec string_of_expr = function
       "avg(" ^ string_of_expr list_expr ^ ")"
   | Median (list_expr) ->
       "median(" ^ string_of_expr list_expr ^ ")"
+  | ShiftLeft  (list_expr, n_expr) ->
+    "shift_left("  ^ string_of_expr list_expr ^ ", " ^ string_of_expr n_expr ^ ")"
+  | ShiftRight (list_expr, n_expr) ->
+    "shift_right(" ^ string_of_expr list_expr ^ ", " ^ string_of_expr n_expr ^ ")"
   | _ -> "Unknown expression"
 
 
