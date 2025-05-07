@@ -149,9 +149,14 @@ let rec parse_expr tokens =
     | AVG :: LPAREN :: rest ->
         let (list_expr, rest') = parse_expr rest in
         (match rest' with
-        | RPAREN :: rest'' ->
-            parse_binop (Avg list_expr) rest''
+        | RPAREN :: rest'' -> parse_binop (Avg list_expr) rest''
         | _ -> raise (ParseError "Expected closing parenthesis ')' after avg argument"))
+
+    | MEDIAN :: LPAREN :: rest ->
+        let (list_expr, rest') = parse_expr rest in
+        (match rest' with
+        | RPAREN :: rest'' -> parse_binop (Median list_expr) rest''
+        | _ -> raise (ParseError "Expected closing parenthesis ')' after median argument"))
 
     | _ -> raise (ParseError "Unexpected token in expression")
 

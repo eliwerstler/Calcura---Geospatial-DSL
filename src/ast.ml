@@ -25,6 +25,7 @@ type expr =
   | Transform of expr * expr * expr
   | Sort of expr * bool option
   | Avg of expr
+  | Median of expr
 
 
 and binop = Add | Sub | Mult | Div | Mod | Equal | Neq | Less | Leq | Greater | Geq | And | Or
@@ -74,6 +75,8 @@ let rec string_of_expr = function
       string_of_expr list_expr ^ "[" ^ string_of_expr index_expr ^ "]"
   | Avg (list_expr) ->
       "avg(" ^ string_of_expr list_expr ^ ")"
+  | Median (list_expr) ->
+      "median(" ^ string_of_expr list_expr ^ ")"
   | _ -> "Unknown expression"
 
 

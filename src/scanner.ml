@@ -202,6 +202,7 @@ let tokenize (input: string) : token list =
     | "true" -> BOOL true
     | "false" -> BOOL false
     | "avg" -> AVG
+    | "median" -> MEDIAN
     | "sort" -> SORT
     | "transform" -> TRANSFORM
     | "from" -> FROM
