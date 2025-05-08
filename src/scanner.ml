@@ -213,6 +213,8 @@ let tokenize (input: string) : token list =
     | "to" -> TO
     | "WGS84" -> WGS84
     | "UTM" -> UTM
+    | "max" -> MAX
+    | "min" -> MIN
 
     (* TODO: Add support for additional keywords:
        - for
