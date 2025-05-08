@@ -9,7 +9,6 @@ let second_num = float_nums[1];
 // -13.4
 print(second_num);
 
-
 let floater_nums = [-1.0, -13.4, 8.6, 4.0, 4.9];
 floater_nums[0] = 5.5;
 // 5.5
