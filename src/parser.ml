@@ -99,6 +99,17 @@ let rec parse_expr tokens =
        - Function calls
        - List operations (shift_left, shift_right, swap, etc.)
     *)
+    | MAX :: LPAREN :: rest ->
+        let (list_expr, rest1) = parse_expr rest in
+        (match rest1 with
+        | RPAREN :: rest2 -> parse_binop (Call("max", [list_expr])) rest2
+        | _ -> raise (ParseError "Expected ')'"))
+    | MIN :: LPAREN :: rest ->
+        let (list_expr, rest1) = parse_expr rest in
+        (match rest1 with
+        | RPAREN :: rest2 -> parse_binop (Call("min", [list_expr])) rest2
+        | _ -> raise (ParseError "Expected ')'"))
+
     | TRANSFORM :: LPAREN :: rest ->
         (* Parse the list expression *)
         let (list_expr, rest1) = parse_expr rest in
