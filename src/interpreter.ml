@@ -412,7 +412,6 @@ let rec eval_expr (e : expr) : value =
         (match returned with
          | Some v -> v
          | None -> failwith ("Function " ^ fn ^ " did not return"))
-    | _ -> failwith "unimplemented"
 
 and eval_stmt = function
   | Decl (name, _, expr) ->
@@ -480,8 +479,15 @@ and eval_stmt = function
             | Some e -> Some (eval_expr e)
         in
         raise (ReturnException v_opt)
-  | _ ->
-      failwith "unimplemented"
+  | Assign (id, expr) ->
+      let _ = (id, expr) in
+      () (* TODO *)
+  | For (id, expr, stmts) ->
+      let _ = (id, expr, stmts) in
+      () (* TODO *)
+  | While (cond, stmts) ->
+      let _ = (cond, stmts) in
+      () (* TODO *)
 
 let run (prog: program) =
   List.iter eval_stmt prog

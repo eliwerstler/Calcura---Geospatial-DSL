@@ -21,6 +21,7 @@ type expr =
   | Binop of expr * binop * expr
   | Unop of unop * expr
   | ListExpr of expr list
+  | Call of identifier * expr list
   | Index of expr * expr
   | Transform of expr * expr * expr
   | Sort of expr * bool option
@@ -107,6 +108,8 @@ let rec string_of_expr = function
       "while (" ^ string_of_expr cond ^ ") " ^ string_of_block stmts
   | Return None -> "return;"
   | Return (Some expr) -> "return " ^ string_of_expr expr ^ ";"
+  | FuncDef (id, params, body) ->
+      "func " ^ id ^ "(" ^ String.concat ", " params ^ ") " ^ string_of_block body
 
 and string_of_block stmts =
   "{ " ^ String.concat " " (List.map string_of_stmt stmts) ^ " }"
