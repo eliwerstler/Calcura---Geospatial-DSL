@@ -31,6 +31,15 @@ print(nums);
 // [3.1, 4.5]
 print(decimals);
 
+let coordinates = (2, 3);
+let float_coordinates = (1.2, -4.4);
+
+// (2, 3)
+print(coordinates);
+
+// (1.2, -4.4)
+print(float_coordinates);
+
 let z = [];
 // []
 print(z);

@@ -1,0 +1,27 @@
+// This is a unit test file. All print statements must have a comment
+// on the line above them with the expected value for that print.
+// See README for more info.
+
+// 2.0
+print(avg([1, 2, 3]));
+
+// 3.0
+print(avg([3.0, 3.0, 3.0]));
+
+// 2.5
+print(avg([2.0, 3.0]));
+
+// 0.0
+print(avg([]));
+
+// 42.0
+print(avg([42]));
+
+// 2.5
+print(avg([1, 2, 3, 4]));
+
+// 2.5
+print(avg([1.0, 2.0, 3.0, 4.0]));
+
+// 2.55
+print(avg([2.5, 2.6]));

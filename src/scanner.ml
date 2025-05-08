@@ -16,7 +16,7 @@ type token =
   | PRINT | MAX | MIN | AVG | MEDIAN
   | SHIFT_LEFT | SHIFT_RIGHT | SWAP | REVERSE | SORT | FILTER | MAP
   | INT_TYPE | FLOAT_TYPE | BOOL_TYPE | CHAR_TYPE | STRING_TYPE | LIST
-  | TRANSFORM | FROM | TO | WGS84 | UTM 
+  | TRANSFORM | FROM | TO | WGS84 | UTM
   | AS | ID of string
   | EOF
 
@@ -134,7 +134,7 @@ let tokenize (input: string) : token list =
     else
       let int_str = String.sub input i (end_int - i) in
       tokenize_helper end_int (INT (int_of_string int_str) :: acc)
-  
+
   and read_identifier i acc =
     let rec collect_id j =
       if j < length && (is_alnum input.[j] || input.[j] = '_') then collect_id (j + 1) else j
@@ -150,21 +150,26 @@ let tokenize (input: string) : token list =
     | '*' -> tokenize_helper (i + 1) (TIMES :: acc)
     | '/' -> tokenize_helper (i + 1) (DIV :: acc)
     | '%' -> tokenize_helper (i + 1) (MOD :: acc)
-    | '=' -> 
-        if i + 1 < length && input.[i + 1] = '=' then 
+    | '=' ->
+        if i + 1 < length && input.[i + 1] = '=' then
           tokenize_helper (i + 2) (EQ :: acc)
-        else 
+        else
           tokenize_helper (i + 1) (ASSIGN :: acc)
-    | '<' -> 
-        if i + 1 < length && input.[i + 1] = '=' then 
+    | '<' ->
+        if i + 1 < length && input.[i + 1] = '=' then
           tokenize_helper (i + 2) (LEQ :: acc)
-        else 
+        else
           tokenize_helper (i + 1) (LT :: acc)
-    | '>' -> 
-        if i + 1 < length && input.[i + 1] = '=' then 
+    | '>' ->
+        if i + 1 < length && input.[i + 1] = '=' then
           tokenize_helper (i + 2) (GEQ :: acc)
-        else 
+        else
           tokenize_helper (i + 1) (GT :: acc)
+    | '!' ->
+      if i + 1 < length && input.[i + 1] = '=' then
+        tokenize_helper (i + 2) (NEQ :: acc)
+      else
+        raise (LexError "Unexpected character: '!'")
     | '(' -> tokenize_helper (i + 1) (LPAREN :: acc)
     | ')' -> tokenize_helper (i + 1) (RPAREN :: acc)
     | ';' -> tokenize_helper (i + 1) (SEMI :: acc)
@@ -198,6 +203,11 @@ let tokenize (input: string) : token list =
     | "not" -> NOT
     | "true" -> BOOL true
     | "false" -> BOOL false
+    | "avg" -> AVG
+    | "median" -> MEDIAN
+    | "shift_left" -> SHIFT_LEFT
+    | "shift_right" -> SHIFT_RIGHT
+    | "sort" -> SORT
     | "transform" -> TRANSFORM
     | "from" -> FROM
     | "to" -> TO
@@ -224,7 +234,7 @@ let tokenize (input: string) : token list =
        - avg
        - median
        - as (for type casting)
-       - type keywords (int, float, bool, char, string, list)
+       - type keywords (char, string, list)
     *)
     | _ -> ID id
   in
