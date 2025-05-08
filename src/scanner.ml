@@ -213,6 +213,10 @@ let tokenize (input: string) : token list =
     | "to" -> TO
     | "WGS84" -> WGS84
     | "UTM" -> UTM
+    | "swap" -> SWAP
+    | "reverse" -> REVERSE
+    | "filter" -> FILTER
+    | "map" -> MAP
 
     (* TODO: Add support for additional keywords:
        - for
