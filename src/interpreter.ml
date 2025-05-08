@@ -301,6 +301,7 @@ let rec eval_expr (e : expr) : value =
         (match v with
         | BoolVal b -> BoolVal (not b)
         | _ -> failwith "Type error: Not requires a boolean")
+
     | Transform (list_expr, from_expr, to_expr) ->
         let list_val = eval_expr list_expr in
         let from_val = eval_expr from_expr in
@@ -382,6 +383,18 @@ let rec eval_expr (e : expr) : value =
         | IntList lst, IntVal n    -> IntList  (shift_right_list lst n)
         | FloatList lst, IntVal n  -> FloatList(shift_right_list lst n)
         | _ -> failwith "shift_right expects (list<int> or list<float>, int)")
+    | Call ("max",[e]) ->
+        let v = eval_expr e in
+        (match v with
+        | IntList (h::l) -> IntVal (List.fold_left max h l)
+        | FloatList (h::l) -> FloatVal (List.fold_left max h l)
+        | _ -> failwith "Type mismatch in inequality check")
+    | Call ("min",[e]) ->
+        let v = eval_expr e in
+        (match v with
+        | IntList (h::l) -> IntVal (List.fold_left min h l)
+        | FloatList (h::l) -> FloatVal (List.fold_left min h l)
+        | _ -> failwith "Type mismatch in inequality check")
     | Call (fn, args) ->
         let (params, body) =
             try FuncEnv.find fn !func_env
