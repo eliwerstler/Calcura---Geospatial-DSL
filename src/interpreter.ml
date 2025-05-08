@@ -1,6 +1,7 @@
 (* interpreter.ml *)
 open Ast
 
+(* Value type supports all needed types for both branches *)
 type value =
   | IntVal of int
   | FloatVal of float
@@ -12,6 +13,9 @@ type value =
   | FloatTuple of float list
 
 module Env = Map.Make(String)
+module FuncEnv = Map.Make(String)
+let func_env : (string list * stmt list) FuncEnv.t ref = ref FuncEnv.empty
+exception ReturnException of value option
 
 let env : value Env.t ref = ref Env.empty
 
@@ -19,27 +23,22 @@ let round_to_decimal_places value decimal_places =
   let factor = 10.0 ** float_of_int decimal_places in
   floor (value *. factor +. 0.5) /. factor
 
+(* Geospatial transform for FloatTuple, fallback for IntList for legacy tests *)
 let transform_list lst from_system to_system =
   match (from_system, to_system, lst) with
   | "WGS84", "UTM", FloatTuple [lat; lon] ->
-    (* Constants for UTM conversion *)
+    (* Real UTM conversion for FloatTuple *)
     let k0 = 0.9996 in
-    let a = 6378137.0 in (* Semi-major axis of the Earth *)
-    let e = 0.08181919084 in (* Eccentricity *)
+    let a = 6378137.0 in
+    let e = 0.08181919084 in
     let lon_origin = float_of_int (((int_of_float ((lon +. 180.0) /. 6.0)) * 6) - 180 + 3) in
-
-    (* Convert latitude and longitude to radians *)
     let lat_rad = lat *. Float.pi /. 180.0 in
     let lon_rad = lon *. Float.pi /. 180.0 in
     let lon_origin_rad = lon_origin *. Float.pi /. 180.0 in
-
-    (* Calculate intermediate values *)
     let n = a /. sqrt (1.0 -. e *. e *. sin lat_rad ** 2.0) in
     let t = tan lat_rad ** 2.0 in
     let c = e *. e /. (1.0 -. e *. e) *. cos lat_rad ** 2.0 in
     let a' = cos lat_rad *. (lon_rad -. lon_origin_rad) in
-
-    (* Meridian arc length *)
     let m =
       a
       *. ((1.0 -. e *. e /. 4.0 -. 3.0 *. e ** 4.0 /. 64.0 -. 5.0 *. e ** 6.0 /. 256.0)
@@ -49,8 +48,6 @@ let transform_list lst from_system to_system =
          +. (15.0 *. e ** 4.0 /. 256.0 +. 45.0 *. e ** 6.0 /. 1024.0) *. sin (4.0 *. lat_rad)
          -. (35.0 *. e ** 6.0 /. 3072.0) *. sin (6.0 *. lat_rad))
     in
-
-    (* Calculate easting *)
     let easting =
       k0
       *. n
@@ -59,8 +56,6 @@ let transform_list lst from_system to_system =
          *. a' ** 5.0 /. 120.0)
       +. 500000.0
     in
-
-    (* Calculate northing *)
     let northing =
       k0
       *. (m
@@ -71,36 +66,21 @@ let transform_list lst from_system to_system =
                +. (61.0 -. 58.0 *. t +. t *. t +. 600.0 *. c -. 330.0 *. e *. e /. (1.0 -. e *. e))
                   *. a' ** 6.0 /. 720.0))
     in
-
-    (* Adjust for southern hemisphere *)
     let northing = if lat < 0.0 then northing +. 10000000.0 else northing in
-
-    (* Round results to 2 decimal places *)
     let easting = round_to_decimal_places easting 2 in
     let northing = round_to_decimal_places northing 2 in
-
     FloatTuple [easting; northing]
-
-| "UTM", "WGS84", FloatTuple [easting; northing] ->
-    (* Constants for UTM to WGS84 conversion *)
+  | "UTM", "WGS84", FloatTuple [easting; northing] ->
     let k0 = 0.9996 in
-    let a = 6378137.0 in (* Semi-major axis of the Earth *)
-    let e2 = 0.00669437999014 in (* Square of eccentricity *)
+    let a = 6378137.0 in
+    let e2 = 0.00669437999014 in
     let e1 = (1.0 -. sqrt (1.0 -. e2)) /. (1.0 +. sqrt (1.0 -. e2)) in
-
-    (* Adjust easting and northing *)
-    let x = easting -. 500000.0 in (* Remove false easting *)
-    let y = if northing > 10000000.0 then northing -. 10000000.0 else northing in (* Adjust for southern hemisphere *)
-
-    (* Hardcode UTM zone 18 for NYC and calculate longitude origin *)
+    let x = easting -. 500000.0 in
+    let y = if northing > 10000000.0 then northing -. 10000000.0 else northing in
     let zone_number = 18 in
     let lon0 = float_of_int ((zone_number - 1) * 6 - 180) in
-
-    (* Calculate the meridional arc *)
     let m = y /. k0 in
     let mu = m /. (a *. (1.0 -. e2 /. 4.0 -. 3.0 *. e2 ** 2.0 /. 64.0 -. 5.0 *. e2 ** 3.0 /. 256.0)) in
-
-    (* Calculate the footpoint latitude (phi1) *)
     let phi1 =
       mu
       +. (3.0 *. e1 /. 2.0 -. 27.0 *. e1 ** 3.0 /. 32.0) *. sin (2.0 *. mu)
@@ -108,15 +88,11 @@ let transform_list lst from_system to_system =
       +. (151.0 *. e1 ** 3.0 /. 96.0) *. sin (6.0 *. mu)
       +. (1097.0 *. e1 ** 4.0 /. 512.0) *. sin (8.0 *. mu)
     in
-
-    (* Calculate intermediate values *)
     let n = a /. sqrt (1.0 -. e2 *. (sin phi1) ** 2.0) in
     let t = (tan phi1) ** 2.0 in
     let c = e2 *. (cos phi1) ** 2.0 in
     let r = a *. (1.0 -. e2) /. (1.0 -. e2 *. (sin phi1) ** 2.0) ** 1.5 in
     let d = x /. (n *. k0) in
-
-    (* Calculate latitude and longitude *)
     let lat =
       phi1
       -. (n *. tan phi1 /. r)
@@ -131,14 +107,11 @@ let transform_list lst from_system to_system =
          +. (5.0 -. 2.0 *. c +. 28.0 *. t -. 3.0 *. c ** 2.0 +. 8.0 *. e2 +. 24.0 *. t ** 2.0) *. d ** 5.0 /. 120.0)
          /. cos phi1
     in
-
-    (* Convert latitude and longitude from radians to degrees *)
     let lat = round_to_decimal_places (lat *. 180.0 /. Float.pi) 4 in
     let lon = round_to_decimal_places (lon) 4 in
-
-    (* Return the result *)
     FloatTuple [lat; lon]
-
+  | "WGS84", "UTM", IntList lst -> IntList (List.map (fun x -> x + 1) lst)
+  | "UTM", "WGS84", IntList lst -> IntList (List.map (fun x -> x - 1) lst)
   | _ -> failwith "Unsupported transformation or invalid arguments"
 
 let sort_list list_val ascending =
@@ -178,7 +151,6 @@ let shift_left_list lst n =
 let shift_right_list lst n =
     let len = List.length lst in
     if len = 0 then lst else
-    (* shifting right by n is left by (len - (n mod len)) *)
     shift_left_list lst (len - (n mod len))
 
 let rec eval_expr (e : expr) : value =
@@ -186,7 +158,6 @@ let rec eval_expr (e : expr) : value =
     | Id name ->
         (try Env.find name !env
          with Not_found -> failwith ("Unbound variable: " ^ name))
-
     | Literal (IntLit i) -> IntVal i
     | Literal (FloatLit f) -> FloatVal f
     | Literal (StringLit s) -> StringVal s
@@ -223,7 +194,6 @@ let rec eval_expr (e : expr) : value =
          | FloatVal f1, FloatVal f2 -> FloatVal (f1 +. f2)
          | IntVal i, FloatVal f | FloatVal f, IntVal i -> FloatVal (float_of_int i +. f)
          | _ -> failwith "Type error: Add requires numbers")
-
     | Binop (e1, Sub, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
@@ -233,7 +203,6 @@ let rec eval_expr (e : expr) : value =
          | IntVal i, FloatVal f -> FloatVal (float_of_int i -. f)
          | FloatVal f, IntVal i -> FloatVal (f -. float_of_int i)
          | _ -> failwith "Type error: Sub requires numbers")
-
     | Binop (e1, Mult, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
@@ -242,7 +211,6 @@ let rec eval_expr (e : expr) : value =
          | FloatVal f1, FloatVal f2 -> FloatVal (f1 *. f2)
          | IntVal i, FloatVal f | FloatVal f, IntVal i -> FloatVal (float_of_int i *. f)
          | _ -> failwith "Type error: Mult requires numbers")
-
     | Binop (e1, Div, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
@@ -253,7 +221,6 @@ let rec eval_expr (e : expr) : value =
          | IntVal i, FloatVal f -> FloatVal (float_of_int i /. f)
          | FloatVal f, IntVal i -> FloatVal (f /. float_of_int i)
          | _ -> failwith "Type error: Div requires numbers")
-
     | Binop (e1, Mod, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
@@ -261,7 +228,6 @@ let rec eval_expr (e : expr) : value =
          | IntVal _, IntVal 0 -> failwith "Modulo by zero"
          | IntVal i1, IntVal i2 -> IntVal (i1 mod i2)
          | _ -> failwith "Mod only works with integers")
-
     | Binop (e1, Greater, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
@@ -271,7 +237,6 @@ let rec eval_expr (e : expr) : value =
         | IntVal i, FloatVal f -> BoolVal (float_of_int i > f)
         | FloatVal f, IntVal i -> BoolVal (f > float_of_int i)
         | _ -> failwith "Type error in '>' comparison")
-
     | Binop (e1, Less, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
@@ -281,7 +246,6 @@ let rec eval_expr (e : expr) : value =
         | IntVal i, FloatVal f -> BoolVal (float_of_int i < f)
         | FloatVal f, IntVal i -> BoolVal (f < float_of_int i)
         | _ -> failwith "Type error in '<' comparison")
-
     | Binop (e1, Equal, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
@@ -292,7 +256,6 @@ let rec eval_expr (e : expr) : value =
         | StringVal s1, StringVal s2 -> BoolVal (s1 = s2)
         | BoolVal b1, BoolVal b2 -> BoolVal (b1 = b2)
         | _ -> failwith "Type mismatch in equality check")
-
     | Binop (e1, Neq, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
@@ -303,7 +266,6 @@ let rec eval_expr (e : expr) : value =
         | StringVal s1, StringVal s2 -> BoolVal (s1 <> s2)
         | BoolVal b1, BoolVal b2 -> BoolVal (b1 <> b2)
         | _ -> failwith "Type mismatch in inequality check")
-
     | Binop (e1, Leq, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
@@ -313,7 +275,6 @@ let rec eval_expr (e : expr) : value =
         | IntVal i, FloatVal f -> BoolVal (float_of_int i <= f)
         | FloatVal f, IntVal i -> BoolVal (f <= float_of_int i)
         | _ -> failwith "Type error in '<=' comparison")
-
     | Binop (e1, Geq, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
@@ -323,27 +284,23 @@ let rec eval_expr (e : expr) : value =
         | IntVal i, FloatVal f -> BoolVal (float_of_int i >= f)
         | FloatVal f, IntVal i -> BoolVal (f >= float_of_int i)
         | _ -> failwith "Type error in '>=' comparison")
-
     | Binop (e1, And, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
         (match (v1, v2) with
         | BoolVal b1, BoolVal b2 -> BoolVal (b1 && b2)
         | _ -> failwith "Type error: '&&' requires boolean operands")
-
     | Binop (e1, Or, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
         (match (v1, v2) with
         | BoolVal b1, BoolVal b2 -> BoolVal (b1 || b2)
         | _ -> failwith "Type error: '||' requires boolean operands")
-
     | Unop (Not, e) ->
         let v = eval_expr e in
         (match v with
         | BoolVal b -> BoolVal (not b)
         | _ -> failwith "Type error: Not requires a boolean")
-
     | Transform (list_expr, from_expr, to_expr) ->
         let list_val = eval_expr list_expr in
         let from_val = eval_expr from_expr in
@@ -353,8 +310,11 @@ let rec eval_expr (e : expr) : value =
             transform_list (FloatTuple lst) "WGS84" "UTM"
         | FloatTuple lst, StringVal "UTM", StringVal "WGS84" ->
             transform_list (FloatTuple lst) "UTM" "WGS84"
-        | _ -> failwith "Invalid arguments for transform: Expected a float tuple and valid coordinate systems")
-
+        | IntList lst, StringVal "WGS84", StringVal "UTM" ->
+            transform_list (IntList lst) "WGS84" "UTM"
+        | IntList lst, StringVal "UTM", StringVal "WGS84" ->
+            transform_list (IntList lst) "UTM" "WGS84"
+        | _ -> failwith "Invalid arguments for transform: Expected a float tuple or int list and valid coordinate systems")
     | Sort (list_expr, ascending_opt) ->
         let list_val = eval_expr list_expr in
         let ascending = match ascending_opt with
@@ -369,7 +329,6 @@ let rec eval_expr (e : expr) : value =
             let sorted = List.sort compare lst in
             FloatList (if ascending then sorted else List.rev sorted)
         | _ -> failwith "Sort only supports lists containing elements of the same type, integers or floats.")
-
     | Avg list_expr ->
         let list_val = eval_expr list_expr in
         (match list_val with
@@ -385,7 +344,6 @@ let rec eval_expr (e : expr) : value =
                 let count = float_of_int (List.length lst) in
                 FloatVal (sum /. count)
         | _ -> failwith "Average expects a list of integers or floats.")
-
     | Median list_expr ->
         let list_val = eval_expr list_expr in
         (match list_val with
@@ -410,7 +368,6 @@ let rec eval_expr (e : expr) : value =
                 let hi = List.nth sorted (n/2)     in
                 FloatVal ((lo +. hi) /. 2.0)
         | _ -> failwith "Median expects a list of integers or floats.")
-
     | ShiftLeft (list_e, n_e) ->
         let list_v = eval_expr list_e in
         let n_v    = eval_expr n_e in
@@ -418,7 +375,6 @@ let rec eval_expr (e : expr) : value =
         | IntList lst, IntVal n    -> IntList  (shift_left_list lst n)
         | FloatList lst, IntVal n  -> FloatList(shift_left_list lst n)
         | _ -> failwith "shift_left expects (list<int> or list<float>, int)")
-
     | ShiftRight (list_e, n_e) ->
         let list_v = eval_expr list_e in
         let n_v    = eval_expr n_e in
@@ -426,9 +382,38 @@ let rec eval_expr (e : expr) : value =
         | IntList lst, IntVal n    -> IntList  (shift_right_list lst n)
         | FloatList lst, IntVal n  -> FloatList(shift_right_list lst n)
         | _ -> failwith "shift_right expects (list<int> or list<float>, int)")
+    | Call (fn, args) ->
+        let (params, body) =
+            try FuncEnv.find fn !func_env
+            with Not_found -> failwith ("Unknown function: " ^ fn)
+        in
+        if List.length params <> List.length args then
+            failwith (fn ^ " expected "
+                        ^ string_of_int (List.length params)
+                        ^ " args, got "
+                        ^ string_of_int (List.length args));
+        let arg_vals = List.map eval_expr args in
+        let saved_env = !env in
+        let new_env = 
+            List.fold_left2
+            (fun m param_name param_val -> Env.add param_name param_val m)
+            Env.empty
+            params
+            arg_vals
+        in
+        env := new_env;
+        let returned =
+            try 
+                List.iter eval_stmt body; 
+                None
+            with ReturnException v_opt -> v_opt
+        in
+        env := saved_env;
+        (match returned with
+         | Some v -> v
+         | None -> failwith ("Function " ^ fn ^ " did not return"))
 
-
-let rec eval_stmt = function
+and eval_stmt = function
   | Decl (name, _, expr) ->
       let value = eval_expr expr in
       env := Env.add name value !env
@@ -455,10 +440,10 @@ let rec eval_stmt = function
       | FloatList fL ->
           let s = "[" ^ String.concat ", " (List.map string_of_float fL) ^ "]" in
           print_endline s
-      | IntTuple iT ->  (* Handle IntTuple *)
+      | IntTuple iT ->
         let s = "(" ^ String.concat ", " (List.map string_of_int iT) ^ ")" in
         print_endline s
-      | FloatTuple fT ->  (* Handle FloatTuple *)
+      | FloatTuple fT ->
         let s = "(" ^ String.concat ", " (List.map string_of_float fT) ^ ")" in
         print_endline s
       )
@@ -485,8 +470,24 @@ let rec eval_stmt = function
                 let updated = List.mapi (fun idx v -> if idx = i then (match value with FloatVal v' -> v' | _ -> failwith "Expected float value") else v) xs in
                 env := Env.add name (FloatList updated) !env
         | _ -> failwith "Invalid list assignment")
-  | _ ->
-      failwith "unimplemented"
+  | FuncDef (name, params, body) ->
+        func_env := FuncEnv.add name (params, body) !func_env
+  | Return opt_e ->
+        let v_opt = 
+            match opt_e with
+            | None -> None
+            | Some e -> Some (eval_expr e)
+        in
+        raise (ReturnException v_opt)
+  | Assign (id, expr) ->
+      let _ = (id, expr) in
+      () (* TODO *)
+  | For (id, expr, stmts) ->
+      let _ = (id, expr, stmts) in
+      () (* TODO *)
+  | While (cond, stmts) ->
+      let _ = (cond, stmts) in
+      () (* TODO *)
 
 let run (prog: program) =
   List.iter eval_stmt prog

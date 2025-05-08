@@ -193,6 +193,8 @@ let tokenize (input: string) : token list =
   and identify_keyword id =
     match id with
     | "let" -> LET
+    | "func" -> FUNC
+    | "return" -> RETURN
     | "print" -> PRINT
     | "if" -> IF
     | "else" -> ELSE

@@ -27,6 +27,20 @@ let rec parse_expr tokens =
         parse_binop (Literal (FloatLit (-.f))) rest
     | STRING s :: rest ->
         parse_binop (Literal (StringLit s)) rest
+    | ID fn :: LPAREN :: rest ->
+        let rec collect_args toks acc =
+            match toks with
+            | RPAREN :: rest' -> (List.rev acc, rest')
+            | _ ->
+                let (arg, rest1) = parse_expr toks in
+                let rest2 = match rest1 with
+                            | COMMA :: rs -> rs
+                            | _ -> rest1
+                in
+                collect_args rest2 (arg::acc)
+            in
+            let (args, rest') = collect_args rest [] in
+            parse_binop (Call(fn, args)) rest'
     | ID id :: rest ->
         parse_binop (Id id) rest
     | BOOL b :: rest ->
@@ -245,11 +259,30 @@ let rec parse_block tokens =
         | _ -> raise (ParseError "Expected '{' to start a block")
 and parse_stmt tokens =
     match tokens with
+    | FUNC :: ID name :: LPAREN :: rest1 ->
+        let rec parse_params toks acc =
+            match toks with
+            | RPAREN :: rest -> (List.rev acc, rest)
+            | ID p :: COMMA :: rest' -> parse_params rest' (p :: acc)
+            | ID p :: rest'       -> parse_params rest' (p :: acc)
+            | _ -> raise (ParseError "Malformed function parameters")
+          in
+          let (params, rest2) = parse_params rest1 [] in
+          let (body, rest3) = parse_block rest2 in
+          (FuncDef (name, params, body), rest3)
     | LET :: ID id :: ASSIGN :: rest ->
             let (expr, rest') = parse_expr rest in
             (match rest' with
             | SEMI :: rest'' -> (Decl (id, None, expr), rest'')
             | _ -> raise (ParseError "Expected semicolon after declaration"))
+    | RETURN :: rest ->
+        (match rest with
+         | SEMI :: rest' -> (Return None, rest')
+         | _ ->
+             let (expr_node, rest') = parse_expr rest in
+             (match rest' with
+              | SEMI :: rest'' -> (Return (Some expr_node), rest'')
+              | _ -> raise (ParseError "Expected semicolon after return")))
     | IF :: LPAREN :: rest ->
         let (cond_expr, rest1) = parse_expr rest in
         (match rest1 with

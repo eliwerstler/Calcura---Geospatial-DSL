@@ -1,0 +1,28 @@
+// simple add function
+func add(x, y) {
+  return x + y;
+}
+
+// 5
+print(add(2, 3));  
+
+// test squaring
+func square(n) {
+  return n * n;
+}
+
+// 16
+print(square(4));
+
+// chaining calls
+// 7
+print(add(square(2), 3));
+
+func sum_squares(a, b) {
+let x = square(a);
+let y = square(b);
+return add(x, y);
+}
+
+// 13
+print(sum_squares(2,3));
