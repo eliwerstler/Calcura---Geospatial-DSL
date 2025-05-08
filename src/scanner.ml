@@ -215,6 +215,8 @@ let tokenize (input: string) : token list =
     | "reverse" -> REVERSE
     | "filter" -> FILTER
     | "map" -> MAP
+    | "max" -> MAX
+    | "min" -> MIN
 
     (* TODO: Add support for additional keywords:
        - for
