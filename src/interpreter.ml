@@ -161,6 +161,26 @@ let rec string_of_value = function
   | IntTuple lst -> "(" ^ String.concat ", " (List.map string_of_int lst) ^ ")"
   | FloatTuple lst -> "(" ^ String.concat ", " (List.map string_of_float lst) ^ ")"
 
+let shift_left_list lst n =
+    let len = List.length lst in
+    if len = 0 then lst else
+        let k = ((n mod len) + len) mod len in
+        let rec split_at i l =
+            if i = 0 then ([], l) else match l with
+            | [] -> ([], [])
+            | x::xs ->
+                let (pre, post) = split_at (i-1) xs in
+                (x::pre, post)
+        in
+        let pre, post = split_at k lst in
+        post @ pre
+
+let shift_right_list lst n =
+    let len = List.length lst in
+    if len = 0 then lst else
+    (* shifting right by n is left by (len - (n mod len)) *)
+    shift_left_list lst (len - (n mod len))
+
 let rec eval_expr (e : expr) : value =
     match e with
     | Id name ->
@@ -323,19 +343,6 @@ let rec eval_expr (e : expr) : value =
         (match v with
         | BoolVal b -> BoolVal (not b)
         | _ -> failwith "Type error: Not requires a boolean")
-    | Call ("max",[e]) ->
-        let v = eval_expr e in
-        (match v with
-        | IntList (h::l) -> IntVal (List.fold_left max h l)
-        | FloatList (h::l) -> FloatVal (List.fold_left max h l)
-        | _ -> failwith "Type mismatch in inequality check")
-    | Call ("min",[e]) ->
-        let v = eval_expr e in
-        (match v with
-        | IntList (h::l) -> IntVal (List.fold_left min h l)
-        | FloatList (h::l) -> FloatVal (List.fold_left min h l)
-        | _ -> failwith "Type mismatch in inequality check")
-    | Call (_,_) -> failwith "unimplemented"
 
     | Transform (list_expr, from_expr, to_expr) ->
         let list_val = eval_expr list_expr in
@@ -354,14 +361,72 @@ let rec eval_expr (e : expr) : value =
             | Some b -> b
             | None -> true
         in
-        match list_val with
+        (match list_val with
         | IntList lst ->
             let sorted = List.sort compare lst in
             IntList (if ascending then sorted else List.rev sorted)
         | FloatList lst ->
             let sorted = List.sort compare lst in
             FloatList (if ascending then sorted else List.rev sorted)
-        | _ -> failwith "Sort only supports lists containing elements of the same type, integers or floats."
+        | _ -> failwith "Sort only supports lists containing elements of the same type, integers or floats.")
+
+    | Avg list_expr ->
+        let list_val = eval_expr list_expr in
+        (match list_val with
+        | IntList lst ->
+            if List.length lst = 0 then FloatVal 0.0
+            else
+                let sum = List.fold_left (+) 0 lst in
+                FloatVal (float_of_int sum /. float_of_int (List.length lst))
+        | FloatList lst ->
+            if List.length lst = 0 then FloatVal 0.0
+            else
+                let sum = List.fold_left (+.) 0.0 lst in
+                let count = float_of_int (List.length lst) in
+                FloatVal (sum /. count)
+        | _ -> failwith "Average expects a list of integers or floats.")
+
+    | Median list_expr ->
+        let list_val = eval_expr list_expr in
+        (match list_val with
+        | IntList lst ->
+            let sorted = List.sort compare lst in
+            let n = List.length sorted in
+            if n = 0 then FloatVal 0.0
+            else if n mod 2 = 1 then
+                FloatVal (float_of_int (List.nth sorted (n/2)))
+            else
+                let lo = List.nth sorted (n/2 - 1) in
+                let hi = List.nth sorted (n/2)     in
+                FloatVal (((float_of_int lo) +. float_of_int hi) /. 2.0)
+        | FloatList lst ->
+            let sorted = List.sort compare lst in
+            let n = List.length sorted in
+            if n = 0 then FloatVal 0.0
+            else if n mod 2 = 1 then
+                FloatVal (List.nth sorted (n/2))
+            else
+                let lo = List.nth sorted (n/2 - 1) in
+                let hi = List.nth sorted (n/2)     in
+                FloatVal ((lo +. hi) /. 2.0)
+        | _ -> failwith "Median expects a list of integers or floats.")
+
+    | ShiftLeft (list_e, n_e) ->
+        let list_v = eval_expr list_e in
+        let n_v    = eval_expr n_e in
+        (match (list_v, n_v) with
+        | IntList lst, IntVal n    -> IntList  (shift_left_list lst n)
+        | FloatList lst, IntVal n  -> FloatList(shift_left_list lst n)
+        | _ -> failwith "shift_left expects (list<int> or list<float>, int)")
+
+    | ShiftRight (list_e, n_e) ->
+        let list_v = eval_expr list_e in
+        let n_v    = eval_expr n_e in
+        (match (list_v, n_v) with
+        | IntList lst, IntVal n    -> IntList  (shift_right_list lst n)
+        | FloatList lst, IntVal n  -> FloatList(shift_right_list lst n)
+        | _ -> failwith "shift_right expects (list<int> or list<float>, int)")
+
 
 let rec eval_stmt = function
   | Decl (name, _, expr) ->

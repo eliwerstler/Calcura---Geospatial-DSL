@@ -5,7 +5,7 @@ type primitive =
   | FloatLit of float
   | BoolLit of bool
   | CharLit of char
-  | StringLit of string  
+  | StringLit of string
   | IntListLit of int list
   | FloatListLit of float list
   | IntTupleLit of int list
@@ -21,10 +21,13 @@ type expr =
   | Binop of expr * binop * expr
   | Unop of unop * expr
   | ListExpr of expr list
-  | Call of identifier * expr list
   | Index of expr * expr
   | Transform of expr * expr * expr
   | Sort of expr * bool option
+  | Avg of expr
+  | Median of expr
+  | ShiftLeft of expr * expr
+  | ShiftRight of expr * expr
 
 
 and binop = Add | Sub | Mult | Div | Mod | Equal | Neq | Less | Leq | Greater | Geq | And | Or
@@ -52,8 +55,8 @@ let rec string_of_expr = function
   | Literal (StringLit s) -> "\"" ^ s ^ "\""
   | Literal (IntListLit lst) -> "[" ^ String.concat ", " (List.map string_of_int lst) ^ "]"
   | Literal (FloatListLit lst) -> "[" ^ String.concat ", " (List.map string_of_float lst) ^ "]"
-  | Literal (IntTupleLit lst) -> "(" ^ String.concat ", " (List.map string_of_int lst) ^ ")"  
-  | Literal (FloatTupleLit lst) -> "(" ^ String.concat ", " (List.map string_of_float lst) ^ ")"  
+  | Literal (IntTupleLit lst) -> "(" ^ String.concat ", " (List.map string_of_int lst) ^ ")"
+  | Literal (FloatTupleLit lst) -> "(" ^ String.concat ", " (List.map string_of_float lst) ^ ")"
   | Id id -> id
   | Binop (e1, op, e2) ->
       let op_str = match op with
@@ -72,6 +75,14 @@ let rec string_of_expr = function
       "transform(" ^ string_of_expr list_expr ^ ", from=" ^ string_of_expr from_expr ^ ", to=" ^ string_of_expr to_expr ^ ")"
   | Index (list_expr, index_expr) ->
       string_of_expr list_expr ^ "[" ^ string_of_expr index_expr ^ "]"
+  | Avg (list_expr) ->
+      "avg(" ^ string_of_expr list_expr ^ ")"
+  | Median (list_expr) ->
+      "median(" ^ string_of_expr list_expr ^ ")"
+  | ShiftLeft  (list_expr, n_expr) ->
+    "shift_left("  ^ string_of_expr list_expr ^ ", " ^ string_of_expr n_expr ^ ")"
+  | ShiftRight (list_expr, n_expr) ->
+    "shift_right(" ^ string_of_expr list_expr ^ ", " ^ string_of_expr n_expr ^ ")"
   | _ -> "Unknown expression"
 
 
