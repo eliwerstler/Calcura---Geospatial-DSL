@@ -5,15 +5,12 @@ open Scanner
 exception ParseError of string
 
 (* TODO:
-   1. Function declarations and calls
-   2. List literals and operations
-   3. Control flow statements (if, else, for, while)
-   4. Type annotations
-   5. Variable declarations with explicit types
-   6. All binary and unary operators from spec
-   7. Block expressions
+   - Parsing for max, min, reduce, append, prepend, minus, slicing, string methods, type casting (as)
+   - Parsing for explicit type annotations, block expressions as value-returning
+   - Parsing for mixed-type lists/tuples, dictionaries, sets, structs, enums, generics, type aliases, type qualifiers, lambdas
+   - Parsing for for/while loops, break/continue, and enforcing type annotations/return types in function declarations
+   - Parsing for lambdas/anonymous functions
 *)
-
 
 let rec parse_expr tokens =
     match tokens with
@@ -202,6 +199,43 @@ let rec parse_expr tokens =
                 parse_binop (ShiftRight (list_expr, n_expr)) rest''
             | _ -> raise (ParseError "Expected ')' after shift_right args"))
         | _ -> raise (ParseError "Expected ',' in shift_right"))
+
+    | SWAP :: LPAREN :: rest ->
+        let (list_expr, rest1) = parse_expr rest in
+        (match rest1 with
+        | COMMA :: rest2 ->
+            let (i_expr, rest3) = parse_expr rest2 in
+            (match rest3 with
+            | COMMA :: rest4 ->
+                let (j_expr, rest5) = parse_expr rest4 in
+                (match rest5 with
+                | RPAREN :: rest6 -> parse_binop (Swap (list_expr, i_expr, j_expr)) rest6
+                | _ -> raise (ParseError "Expected ')' after swap arguments"))
+            | _ -> raise (ParseError "Expected ',' in swap"))
+        | _ -> raise (ParseError "Expected ',' in swap"))
+    | REVERSE :: LPAREN :: rest ->
+        let (list_expr, rest1) = parse_expr rest in
+        (match rest1 with
+        | RPAREN :: rest2 -> parse_binop (Reverse list_expr) rest2
+        | _ -> raise (ParseError "Expected ')' after reverse argument"))
+    | FILTER :: LPAREN :: rest ->
+        let (list_expr, rest1) = parse_expr rest in
+        (match rest1 with
+        | COMMA :: rest2 ->
+            let (func_expr, rest3) = parse_expr rest2 in
+            (match rest3 with
+            | RPAREN :: rest4 -> parse_binop (Filter (list_expr, func_expr)) rest4
+            | _ -> raise (ParseError "Expected ')' after filter arguments"))
+        | _ -> raise (ParseError "Expected ',' in filter"))
+    | MAP :: LPAREN :: rest ->
+        let (list_expr, rest1) = parse_expr rest in
+        (match rest1 with
+        | COMMA :: rest2 ->
+            let (func_expr, rest3) = parse_expr rest2 in
+            (match rest3 with
+            | RPAREN :: rest4 -> parse_binop (Map (list_expr, func_expr)) rest4
+            | _ -> raise (ParseError "Expected ')' after map arguments"))
+        | _ -> raise (ParseError "Expected ',' in map"))
 
     | _ -> raise (ParseError "Unexpected token in expression")
 

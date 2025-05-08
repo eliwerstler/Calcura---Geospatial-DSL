@@ -1,4 +1,14 @@
 (* interpreter.ml *)
+
+(* TODO:
+   - Implement max, min, reduce, append, prepend, minus, slicing, string methods, type casting (as), explicit type conversion
+   - Implement block expressions as value-returning
+   - Implement for/while loops, break/continue, assignment (Assign)
+   - Implement dictionaries, sets, structs, enums, generics, type aliases, type qualifiers, lambdas
+   - Enforce immutability and type safety as described in the LRM
+   - Implement geospatial/statistical features beyond transform
+*)
+
 open Ast
 
 (* Value type supports all needed types for both branches *)
@@ -227,7 +237,7 @@ let rec eval_expr (e : expr) : value =
         (match (v1, v2) with
          | IntVal _, IntVal 0 -> failwith "Modulo by zero"
          | IntVal i1, IntVal i2 -> IntVal (i1 mod i2)
-         | _ -> failwith "Mod only works with integers")
+         | _ -> failwith "Modulo operator '%' is only supported for integers.")
     | Binop (e1, Greater, e2) ->
         let v1 = eval_expr e1 in
         let v2 = eval_expr e2 in
@@ -383,6 +393,58 @@ let rec eval_expr (e : expr) : value =
         | IntList lst, IntVal n    -> IntList  (shift_right_list lst n)
         | FloatList lst, IntVal n  -> FloatList(shift_right_list lst n)
         | _ -> failwith "shift_right expects (list<int> or list<float>, int)")
+    | Swap (list_e, i_e, j_e) ->
+        let list_v = eval_expr list_e in
+        let i_v = eval_expr i_e in
+        let j_v = eval_expr j_e in
+        let swap_list lst i j =
+          if i < 0 || j < 0 || i >= List.length lst || j >= List.length lst then
+            failwith "swap: index out of bounds"
+          else
+            List.mapi (fun idx v ->
+              if idx = i then List.nth lst j
+              else if idx = j then List.nth lst i
+              else v
+            ) lst
+        in
+        (match (list_v, i_v, j_v) with
+        | IntList lst, IntVal i, IntVal j -> IntList (swap_list lst i j)
+        | FloatList lst, IntVal i, IntVal j -> FloatList (swap_list lst i j)
+        | _ -> failwith "swap expects (list<int> or list<float>, int, int)")
+    | Reverse list_e ->
+        let list_v = eval_expr list_e in
+        (match list_v with
+        | IntList lst -> IntList (List.rev lst)
+        | FloatList lst -> FloatList (List.rev lst)
+        | _ -> failwith "reverse expects list<int> or list<float>")
+    | Filter (list_e, func_e) ->
+        let list_v = eval_expr list_e in
+        (match (list_v, func_e) with
+        | IntList lst, Id fname ->
+            IntList (List.filter (fun x ->
+              match eval_expr (Call(fname, [Literal (IntLit x)])) with
+              | BoolVal b -> b
+              | _ -> failwith "filter function must return bool") lst)
+        | FloatList lst, Id fname ->
+            FloatList (List.filter (fun x ->
+              match eval_expr (Call(fname, [Literal (FloatLit x)])) with
+              | BoolVal b -> b
+              | _ -> failwith "filter function must return bool") lst)
+        | _ -> failwith "filter expects (list<int> or list<float>, function)")
+    | Map (list_e, func_e) ->
+        let list_v = eval_expr list_e in
+        (match (list_v, func_e) with
+        | IntList lst, Id fname ->
+            IntList (List.map (fun x ->
+              match eval_expr (Call(fname, [Literal (IntLit x)])) with
+              | IntVal v -> v
+              | _ -> failwith "map function must return int") lst)
+        | FloatList lst, Id fname ->
+            FloatList (List.map (fun x ->
+              match eval_expr (Call(fname, [Literal (FloatLit x)])) with
+              | FloatVal v -> v
+              | _ -> failwith "map function must return float") lst)
+        | _ -> failwith "map expects (list<int> or list<float>, function)")
     | Call ("max",[e]) ->
         let v = eval_expr e in
         (match v with
@@ -406,6 +468,11 @@ let rec eval_expr (e : expr) : value =
                         ^ " args, got "
                         ^ string_of_int (List.length args));
         let arg_vals = List.map eval_expr args in
+        let wrap_param param_name param_val =
+          match param_val with
+          | IntVal _ | FloatVal _ | BoolVal _ | StringVal _ | IntList _ | FloatList _ | IntTuple _ | FloatTuple _ -> param_val
+        in
+        let arg_vals = List.map2 wrap_param params arg_vals in
         let saved_env = !env in
         let new_env = 
             List.fold_left2

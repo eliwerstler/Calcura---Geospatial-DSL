@@ -1,3 +1,11 @@
+(* TODO:
+   - Support for mixed-type lists and tuples
+   - Add dictionary, set, struct, enum types
+   - Add generics, type aliases, type qualifiers
+   - Add type casting and block expressions as value-returning
+   - Add support for lambdas/anonymous functions
+*)
+
 type identifier = string
 
 type primitive =
@@ -29,6 +37,10 @@ type expr =
   | Median of expr
   | ShiftLeft of expr * expr
   | ShiftRight of expr * expr
+  | Swap of expr * expr * expr
+  | Reverse of expr
+  | Filter of expr * expr
+  | Map of expr * expr
 
 
 and binop = Add | Sub | Mult | Div | Mod | Equal | Neq | Less | Leq | Greater | Geq | And | Or
