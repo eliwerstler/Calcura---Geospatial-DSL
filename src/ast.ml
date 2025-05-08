@@ -1,3 +1,11 @@
+(* TODO:
+   - Support for mixed-type lists and tuples
+   - Add dictionary, set, struct, enum types
+   - Add generics, type aliases, type qualifiers
+   - Add type casting and block expressions as value-returning
+   - Add support for lambdas/anonymous functions
+*)
+
 type identifier = string
 
 type primitive =

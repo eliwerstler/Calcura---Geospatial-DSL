@@ -1,4 +1,14 @@
 (* interpreter.ml *)
+
+(* TODO:
+   - Implement max, min, reduce, append, prepend, minus, slicing, string methods, type casting (as), explicit type conversion
+   - Implement block expressions as value-returning
+   - Implement for/while loops, break/continue, assignment (Assign)
+   - Implement dictionaries, sets, structs, enums, generics, type aliases, type qualifiers, lambdas
+   - Enforce immutability and type safety as described in the LRM
+   - Implement geospatial/statistical features beyond transform
+*)
+
 open Ast
 
 (* Value type supports all needed types for both branches *)

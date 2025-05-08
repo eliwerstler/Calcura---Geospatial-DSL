@@ -89,14 +89,12 @@ let string_of_token = function
   | EOF -> "EOF"
 
 (* TODO:
-   - char literals
-   - type annotation tokens
-   - function declaration/call tokens
-   - index (Sayef)
-   - sort (Crystal), desc asc
-   - special tokens for built-in functions (max, min, avg, median) -> Junqi max min
-   - User-defined function (Eli)
-   - list operation tokens (shift_left, shift_right, swap, reverse, filter, map)
+   - Add char literal support
+   - Add tokens for type annotations, explicit type conversion, and type casting (as)
+   - Add tokens for function declaration/call, index, sort (desc/asc), reduce, append, prepend, minus, slicing, string methods
+   - Add tokens for max, min, and other built-in functions
+   - Add tokens for user-defined function, lambdas
+   - Add tokens for dictionary, set, struct, enum, generics, type aliases, type qualifiers
 *)
 
 exception LexError of string

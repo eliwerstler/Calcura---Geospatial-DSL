@@ -5,15 +5,12 @@ open Scanner
 exception ParseError of string
 
 (* TODO:
-   1. Function declarations and calls
-   2. List literals and operations
-   3. Control flow statements (if, else, for, while)
-   4. Type annotations
-   5. Variable declarations with explicit types
-   6. All binary and unary operators from spec
-   7. Block expressions
+   - Parsing for max, min, reduce, append, prepend, minus, slicing, string methods, type casting (as)
+   - Parsing for explicit type annotations, block expressions as value-returning
+   - Parsing for mixed-type lists/tuples, dictionaries, sets, structs, enums, generics, type aliases, type qualifiers, lambdas
+   - Parsing for for/while loops, break/continue, and enforcing type annotations/return types in function declarations
+   - Parsing for lambdas/anonymous functions
 *)
-
 
 let rec parse_expr tokens =
     match tokens with
