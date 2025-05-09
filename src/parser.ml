@@ -10,7 +10,6 @@ let init_debug () =
   try
     let debug_file = open_out_gen [Open_append; Open_creat] 0o666 "test/out/parse_debug.txt" in
     debug_out := Some debug_file;
-    Printf.fprintf debug_file "Parser debug log initialized\n"
   with _ -> 
     debug_out := None
 

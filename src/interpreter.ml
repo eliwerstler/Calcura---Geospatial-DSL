@@ -34,8 +34,7 @@ let init_debug () =
   try
     let debug_file = open_out_gen [Open_append; Open_creat] 0o666 "test/out/debug.txt" in
     debug_out := Some debug_file;
-    Printf.fprintf debug_file "Debug log initialized\n";
-    flush debug_file  (* Ensure the message is written immediately *)
+
   with _ -> 
     debug_out := None
 
