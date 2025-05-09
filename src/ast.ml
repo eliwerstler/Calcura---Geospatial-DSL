@@ -55,8 +55,6 @@ type stmt =
   | ForIn of identifier * expr * stmt list          (* Python-style for-in loop *)
   | ForC of stmt * expr * stmt * stmt list          (* C-style for loop *)
   | While of expr * stmt list
-  | Break                                           (* Break statement *)
-  | Continue                                        (* Continue statement *)
   | Return of expr option
   | FuncDef of identifier * identifier list * stmt list
   | Print of expr
@@ -124,8 +122,6 @@ let rec string_of_expr = function
       string_of_stmt update ^ ") " ^ string_of_block stmts
   | While (cond, stmts) ->
       "while (" ^ string_of_expr cond ^ ") " ^ string_of_block stmts
-  | Break -> "break;"
-  | Continue -> "continue;"
   | Return None -> "return;"
   | Return (Some expr) -> "return " ^ string_of_expr expr ^ ";"
   | FuncDef (id, params, body) ->

@@ -1,0 +1,12 @@
+// This is a unit test file. All print statements must have a comment
+// on the line above them with the expected value for that print.
+// See README for more info.
+
+let i = 0;
+let sum = 0;
+while (i < 5) {
+  sum = sum + i;
+  i = i + 1;
+}
+// 10
+print(sum);

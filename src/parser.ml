@@ -408,10 +408,6 @@ and parse_stmt tokens =
                 (ForIn(var, list_expr, body), rest4)
             | _ -> raise (ParseError "Expected ')' after for-in list"))
         | _ -> raise (ParseError "Invalid for loop syntax"))
-    | BREAK :: SEMI :: rest ->
-        (Break, rest)
-    | CONTINUE :: SEMI :: rest ->
-        (Continue, rest)
     | PRINT :: LPAREN :: rest ->
             (try
                 let (expr, rest') = parse_expr rest in

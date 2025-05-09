@@ -26,9 +26,6 @@ module Env = Map.Make(String)
 module FuncEnv = Map.Make(String)
 let func_env : (string list * stmt list) FuncEnv.t ref = ref FuncEnv.empty
 exception ReturnException of value option
-(* New exceptions for control flow *)
-exception BreakException
-exception ContinueException
 
 let env : value Env.t ref = ref Env.empty
 
@@ -570,30 +567,16 @@ and eval_stmt = function
         env := Env.add id value !env  (* Update existing variable *)
       with Not_found -> 
         failwith ("Cannot assign to undeclared variable: " ^ id))
-  | Break ->
-      (* Signal to break out of a loop *)
-      raise BreakException
-  | Continue ->
-      (* Signal to continue to the next iteration *)
-      raise ContinueException
   | While (cond, stmts) ->
       (* While loop implementation *)
       let rec loop () =
         match eval_expr cond with
         | BoolVal true -> 
-            (try
-              List.iter eval_stmt stmts;
-              loop ()
-            with
-              | BreakException -> ()
-              | ContinueException -> loop ())
+            List.iter eval_stmt stmts;
+            loop ()
         | IntVal v when v <> 0 ->
-            (try
-              List.iter eval_stmt stmts;
-              loop ()
-            with
-              | BreakException -> ()
-              | ContinueException -> loop ())
+            List.iter eval_stmt stmts;
+            loop ()
         | BoolVal false | IntVal 0 -> ()
         | _ -> failwith "While condition must evaluate to a boolean or integer"
       in
@@ -604,32 +587,18 @@ and eval_stmt = function
       (match list_val with
        | IntList lst ->
            let saved_env = !env in
-           (try
-             List.iter (fun item ->
-               env := Env.add id (IntVal item) !env;
-               try
-                 List.iter eval_stmt stmts
-               with
-                 | ContinueException -> ()  (* Continue to next iteration *)
-                 | BreakException as e -> raise e  (* Re-raise to break out *)
-             ) lst;
-             env := saved_env
-           with BreakException -> 
-             env := saved_env)  (* Restore environment on break *)
+           List.iter (fun item ->
+             env := Env.add id (IntVal item) !env;
+             List.iter eval_stmt stmts
+           ) lst;
+           env := saved_env
        | FloatList lst ->
            let saved_env = !env in
-           (try
-             List.iter (fun item ->
-               env := Env.add id (FloatVal item) !env;
-               try
-                 List.iter eval_stmt stmts
-               with
-                 | ContinueException -> ()
-                 | BreakException as e -> raise e
-             ) lst;
-             env := saved_env
-           with BreakException -> 
-             env := saved_env)
+           List.iter (fun item ->
+             env := Env.add id (FloatVal item) !env;
+             List.iter eval_stmt stmts
+           ) lst;
+           env := saved_env
        | _ -> failwith "ForIn expects a list of integers or floats")
   | ForC (init, cond, update, stmts) ->
       (* C-style for loop *)
@@ -644,33 +613,15 @@ and eval_stmt = function
         | BoolVal true -> 
             (* Debug output *)
             Printf.fprintf debug_out "ForC loop iteration, condition true\n";
-            (try
-              List.iter eval_stmt stmts;
-              eval_stmt update;  (* Execute update statement *)
-              loop ()
-            with
-              | BreakException -> 
-                  Printf.fprintf debug_out "Break encountered in ForC\n";
-                  ()  (* Exit loop on break *)
-              | ContinueException -> 
-                  Printf.fprintf debug_out "Continue encountered in ForC\n";
-                  eval_stmt update;  (* Do the update and continue *)
-                  loop ())
+            List.iter eval_stmt stmts;
+            eval_stmt update;  (* Execute update statement *)
+            loop ()
         | IntVal v when v <> 0 ->
             (* Debug output *)
             Printf.fprintf debug_out "ForC loop iteration, condition true (non-zero int)\n";
-            (try
-              List.iter eval_stmt stmts;
-              eval_stmt update;
-              loop ()
-            with
-              | BreakException -> 
-                  Printf.fprintf debug_out "Break encountered in ForC\n";
-                  ()
-              | ContinueException -> 
-                  Printf.fprintf debug_out "Continue encountered in ForC\n";
-                  eval_stmt update;
-                  loop ())
+            List.iter eval_stmt stmts;
+            eval_stmt update;
+            loop ()
         | BoolVal false | IntVal 0 ->
             Printf.fprintf debug_out "ForC loop condition false, exiting\n";
             ()  (* Exit loop when condition is false *)
@@ -683,5 +634,4 @@ let run (prog: program) =
   try
     List.iter eval_stmt prog
   with
-    | BreakException -> failwith "Break statement outside of loop"
-    | ContinueException -> failwith "Continue statement outside of loop"
+    | _ -> failwith "Unhandled exception"

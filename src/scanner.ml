@@ -12,7 +12,7 @@ type token =
   | LPAREN | RPAREN | LBRACE | RBRACE | LBRACKET | RBRACKET
   | SEMI | COMMA | COLON | DOT
   | LET | FUNC | RETURN
-  | IF | ELSE | FOR | WHILE | IN | BREAK | CONTINUE
+  | IF | ELSE | FOR | WHILE | IN
   | PRINT | MAX | MIN | AVG | MEDIAN
   | SHIFT_LEFT | SHIFT_RIGHT | SWAP | REVERSE | SORT | FILTER | MAP
   | INT_TYPE | FLOAT_TYPE | BOOL_TYPE | CHAR_TYPE | STRING_TYPE | LIST
@@ -59,8 +59,6 @@ let string_of_token = function
   | FOR -> "FOR"
   | WHILE -> "WHILE"
   | IN -> "IN"
-  | BREAK -> "BREAK"
-  | CONTINUE -> "CONTINUE"
   | PRINT -> "PRINT"
   | MAX -> "MAX"
   | MIN -> "MIN"
@@ -209,8 +207,6 @@ let tokenize (input: string) : token list =
     | "for" -> FOR
     | "while" -> WHILE
     | "in" -> IN
-    | "break" -> BREAK
-    | "continue" -> CONTINUE
     | "and" -> AND
     | "or" -> OR
     | "not" -> NOT
