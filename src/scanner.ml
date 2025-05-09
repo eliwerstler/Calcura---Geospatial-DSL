@@ -12,7 +12,7 @@ type token =
   | LPAREN | RPAREN | LBRACE | RBRACE | LBRACKET | RBRACKET
   | SEMI | COMMA | COLON | DOT
   | LET | FUNC | RETURN
-  | IF | ELSE | FOR | WHILE | IN | BREAK | CONTINUE
+  | IF | ELSE | FOR | WHILE | IN
   | PRINT | MAX | MIN | AVG | MEDIAN
   | SHIFT_LEFT | SHIFT_RIGHT | SWAP | REVERSE | SORT | FILTER | MAP
   | INT_TYPE | FLOAT_TYPE | BOOL_TYPE | CHAR_TYPE | STRING_TYPE | LIST
@@ -59,8 +59,6 @@ let string_of_token = function
   | FOR -> "FOR"
   | WHILE -> "WHILE"
   | IN -> "IN"
-  | BREAK -> "BREAK"
-  | CONTINUE -> "CONTINUE"
   | PRINT -> "PRINT"
   | MAX -> "MAX"
   | MIN -> "MIN"
@@ -168,6 +166,16 @@ let tokenize (input: string) : token list =
         tokenize_helper (i + 2) (NEQ :: acc)
       else
         raise (LexError "Unexpected character: '!'")
+    | '&' ->
+      if i + 1 < length && input.[i + 1] = '&' then
+        tokenize_helper (i + 2) (AND :: acc)
+      else
+        raise (LexError ("Unexpected character: '&'"))
+    | '|' ->
+      if i + 1 < length && input.[i + 1] = '|' then
+        tokenize_helper (i + 2) (OR :: acc)
+      else
+        raise (LexError ("Unexpected character: '|'"))
     | '(' -> tokenize_helper (i + 1) (LPAREN :: acc)
     | ')' -> tokenize_helper (i + 1) (RPAREN :: acc)
     | ';' -> tokenize_helper (i + 1) (SEMI :: acc)
@@ -196,6 +204,9 @@ let tokenize (input: string) : token list =
     | "print" -> PRINT
     | "if" -> IF
     | "else" -> ELSE
+    | "for" -> FOR
+    | "while" -> WHILE
+    | "in" -> IN
     | "and" -> AND
     | "or" -> OR
     | "not" -> NOT
@@ -217,29 +228,6 @@ let tokenize (input: string) : token list =
     | "map" -> MAP
     | "max" -> MAX
     | "min" -> MIN
-
-    (* TODO: Add support for additional keywords:
-       - for
-       - while
-       - break
-       - continue
-       - in
-       - func
-       - return
-       - shift_left
-       - shift_right
-       - swap
-       - reverse
-       - sort
-       - filter
-       - map
-       - max
-       - min
-       - avg
-       - median
-       - as (for type casting)
-       - type keywords (char, string, list)
-    *)
     | _ -> ID id
   in
   tokenize_helper 0 []

@@ -4,6 +4,25 @@ open Scanner
 
 exception ParseError of string
 
+let debug_out = ref None
+
+let init_debug () =
+  try
+    let debug_file = open_out_gen [Open_append; Open_creat] 0o666 "test/out/parse_debug.txt" in
+    debug_out := Some debug_file;
+  with _ -> 
+    debug_out := None
+
+let debug_log fmt =
+  match !debug_out with
+  | Some out_channel -> Printf.fprintf out_channel fmt
+  | None -> Printf.ifprintf stdout fmt
+
+let close_debug () =
+  match !debug_out with
+  | Some out_channel -> close_out out_channel; debug_out := None
+  | None -> ()
+
 (* TODO:
    - Parsing for max, min, reduce, append, prepend, minus, slicing, string methods, type casting (as)
    - Parsing for explicit type annotations, block expressions as value-returning
@@ -127,7 +146,7 @@ let rec parse_expr tokens =
                             (match rest5 with
                             | RPAREN :: rest6 ->
                                 let transform_expr = Transform (list_expr, from_expr, to_expr) in
-                                print_endline (Ast.string_of_expr transform_expr); (* Debugging output *)
+                                debug_log "%s\n" (Ast.string_of_expr transform_expr); (* Debugging output *)
                                 (transform_expr, rest6)
                             | _ -> raise (ParseError "Expected closing parenthesis after transform arguments"))
                         | _ -> raise (ParseError "Expected 'to' to be either 'WGS84' or 'UTM'"))
@@ -150,7 +169,7 @@ let rec parse_expr tokens =
                             (match rest5 with
                             | RPAREN :: rest6 ->
                                 let transform_expr = Transform (list_expr, from_expr, to_expr) in
-                                print_endline (Ast.string_of_expr transform_expr); (* Debugging output *)
+                                debug_log "%s\n" (Ast.string_of_expr transform_expr); (* Debugging output *)
                                 (transform_expr, rest6)
                             | _ -> raise (ParseError "Expected closing parenthesis after transform arguments"))
                         | _ -> raise (ParseError "Expected 'to' to be either 'WGS84' or 'UTM'"))
@@ -349,16 +368,65 @@ and parse_stmt tokens =
                 | SEMI :: rest4 -> (ListAssign(id, index_expr, value_expr), rest4)
                 | _ -> raise (ParseError "Expected ';' after list assignment"))
         | _ -> raise (ParseError "Expected ']' after index"))
-    (* TODO:
-       - Variable declarations with explicit types
-       - Function declarations
-       - If/else statements
-       - For loops
-       - While loops
-       - Return statements
-       - Block statements
-       - Break and continue
-    *)
+    | ID id :: ASSIGN :: rest ->
+        let (expr, rest') = parse_expr rest in
+        (match rest' with
+        | SEMI :: rest'' -> (Assign (id, expr), rest'')
+        | _ -> raise (ParseError "Expected ';' after assignment"))
+    | WHILE :: LPAREN :: rest ->
+        let (cond_expr, rest1) = parse_expr rest in
+        (match rest1 with
+        | RPAREN :: rest2 ->
+            let (body, rest3) = parse_block rest2 in
+            (While (cond_expr, body), rest3)
+        | _ -> raise (ParseError "Expected ')' after while condition"))
+    | FOR :: LPAREN :: rest ->
+        (match rest with
+        | LET :: ID var :: ASSIGN :: rest1 ->
+            (* C-style for loop: for (let i = 0; i < 10; i = i + 1) { ... } *)
+            let (init_expr, rest2) = parse_expr rest1 in
+            (match rest2 with
+            | SEMI :: rest3 ->
+                let init_stmt = Decl(var, None, init_expr) in
+                let (cond_expr, rest4) = parse_expr rest3 in
+                (match rest4 with
+                | SEMI :: rest5 ->
+                    let (update_expr, rest6) = parse_expr rest5 in
+                    (match rest6 with
+                    | RPAREN :: rest7 ->
+                        let update_stmt = Assign(var, update_expr) in
+                        let (body, rest8) = parse_block rest7 in
+                        (ForC(init_stmt, cond_expr, update_stmt, body), rest8)
+                    | _ -> raise (ParseError "Expected ')' after for loop update expression"))
+                | _ -> raise (ParseError "Expected ';' after for loop condition"))
+            | _ -> raise (ParseError "Expected ';' after for loop initialization"))
+        | ID var :: ASSIGN :: rest1 ->
+            (* C-style for loop with existing variable: for (i = 0; i < 10; i = i + 1) { ... } *)
+            let (init_expr, rest2) = parse_expr rest1 in
+            (match rest2 with
+            | SEMI :: rest3 ->
+                let init_stmt = Assign(var, init_expr) in
+                let (cond_expr, rest4) = parse_expr rest3 in
+                (match rest4 with
+                | SEMI :: rest5 ->
+                    let (update_expr, rest6) = parse_expr rest5 in
+                    (match rest6 with
+                    | RPAREN :: rest7 ->
+                        let update_stmt = Assign(var, update_expr) in
+                        let (body, rest8) = parse_block rest7 in
+                        (ForC(init_stmt, cond_expr, update_stmt, body), rest8)
+                    | _ -> raise (ParseError "Expected ')' after for loop update expression"))
+                | _ -> raise (ParseError "Expected ';' after for loop condition"))
+            | _ -> raise (ParseError "Expected ';' after for loop initialization"))
+        | ID var :: IN :: rest1 ->
+            (* Python-style for-in loop: for (i in [1, 2, 3]) { ... } *)
+            let (list_expr, rest2) = parse_expr rest1 in
+            (match rest2 with
+            | RPAREN :: rest3 ->
+                let (body, rest4) = parse_block rest3 in
+                (ForIn(var, list_expr, body), rest4)
+            | _ -> raise (ParseError "Expected ')' after for-in list"))
+        | _ -> raise (ParseError "Invalid for loop syntax"))
     | PRINT :: LPAREN :: rest ->
             (try
                 let (expr, rest') = parse_expr rest in
@@ -395,7 +463,7 @@ let rec parse_program tokens =
                     stmt :: parse_program rest
                 with
                 | ParseError msg as e ->
-                    Printf.printf "Parse error: %s\n" msg;
+                    debug_log "Parse error: %s\n" msg;
                     if tokens <> [EOF] && List.hd tokens <> EOF then
                         parse_program (List.tl tokens)
                     else

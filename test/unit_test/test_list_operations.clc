@@ -1,3 +1,7 @@
+// This is a unit test file. All print statements must have a comment
+// on the line above them with the expected value for that print.
+// See README for more info.
+
 // Access an item from a list
 let nums = [10, 20, 30, 40];
 let second = nums[1];

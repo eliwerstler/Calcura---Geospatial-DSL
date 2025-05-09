@@ -52,7 +52,8 @@ type stmt =
   | ListAssign of identifier * expr * expr
   | Expr of expr
   | If of expr * stmt list * stmt list option
-  | For of identifier * expr * stmt list
+  | ForIn of identifier * expr * stmt list          (* Python-style for-in loop *)
+  | ForC of stmt * expr * stmt * stmt list          (* C-style for loop *)
   | While of expr * stmt list
   | Return of expr option
   | FuncDef of identifier * identifier list * stmt list
@@ -114,8 +115,11 @@ let rec string_of_expr = function
         | None -> ""
       in
       "if (" ^ string_of_expr cond ^ ") " ^ string_of_block then_branch ^ else_str
-  | For (id, expr, stmts) ->
+  | ForIn (id, expr, stmts) ->
       "for (" ^ id ^ " in " ^ string_of_expr expr ^ ") " ^ string_of_block stmts
+  | ForC (init, cond, update, stmts) ->
+      "for (" ^ string_of_stmt init ^ " " ^ string_of_expr cond ^ "; " ^ 
+      string_of_stmt update ^ ") " ^ string_of_block stmts
   | While (cond, stmts) ->
       "while (" ^ string_of_expr cond ^ ") " ^ string_of_block stmts
   | Return None -> "return;"

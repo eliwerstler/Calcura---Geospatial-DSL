@@ -1,0 +1,82 @@
+// This is a unit test file. All print statements must have a comment
+// on the line above them with the expected value for that print.
+// See README for more info.
+
+let i = 0;
+let sum = 0;
+while (i < 5) {
+  sum = sum + i;
+  i = i + 1;
+}
+// 10
+print(sum);
+
+let x = 10;
+let product = 1;
+while (x > 5) {
+  product = product * x;
+  x = x - 1;
+}
+// 30240
+print(product);
+
+let z = 0;
+let sum_never = 0;
+while (z < 0) {
+  sum_never = sum_never + z;
+  z = z + 1;
+}
+// 0
+print(sum_never);
+
+// TODO: C-Style For loop not working
+
+let arr = [1, 2, 3, 4];
+let sum_forin = 0;
+let val = 0;
+for (val in arr) {
+  sum_forin = sum_forin + val;
+}
+// 10
+print(sum_forin);
+let arr2 = [5, 10, 15];
+let sum_forin2 = 0;
+let val2 = 0;
+for (val2 in arr2) {
+  sum_forin2 = sum_forin2 + val2;
+}
+// 30
+print(sum_forin2);
+
+let arr3 = [2, 4, 6, 8];
+let product_forin = 1;
+let val3 = 0;
+for (val3 in arr3) {
+  product_forin = product_forin * val3;
+}
+// 384
+print(product_forin);
+
+let arr4 = [7, 14, 21];
+let max_forin = 0;
+let val4 = 0;
+for (val4 in arr4) {
+  if (val4 > max_forin) {
+    max_forin = val4;
+  }
+}
+// 21
+print(max_forin);
+
+let arr_a = [1, 2, 3];
+let arr_b = [4, 5, 6];
+let combined_sum = 0;
+let val_a = 0;
+let val_b = 0;
+for (val_a in arr_a) {
+  for (val_b in arr_b) {
+    combined_sum = combined_sum + val_a + val_b;
+  }
+}
+// 63
+print(combined_sum);

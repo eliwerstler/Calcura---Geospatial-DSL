@@ -24,13 +24,20 @@ let () =
     let filename = Sys.argv.(1) in
     if Filename.check_suffix filename ".clc" then
       try
-        let input = read_file filename in  (* Use custom read_file function *)
+        let input = read_file filename in
+        Parser.init_debug();
         let tokens = tokenize input in
         let ast = parse tokens in
-        run ast
+        Parser.close_debug();
+        Interpreter.init_debug();
+        run ast;
+        Interpreter.close_debug()
       with
       | Sys_error msg -> prerr_endline ("File Error: " ^ msg)
       | LexError msg -> prerr_endline ("Lexer Error: " ^ msg)
-      | ParseError msg -> prerr_endline ("Parser Error: " ^ msg)
+      | ParseError msg -> 
+          (* Write to debug log instead of stderr *)
+          Parser.debug_log "Parser Error: %s\n" msg;
+          prerr_endline ("Parser Error: " ^ msg)
     else
       prerr_endline "Error: Input file must have a .clc extension."

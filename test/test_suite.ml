@@ -173,6 +173,7 @@ and analyze_test_results output_file =
   
   passed = (passed + failed)
 
+
 let run_all_tests () =
   let test_dir = "test/unit_test" in
   

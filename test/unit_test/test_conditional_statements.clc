@@ -2,9 +2,6 @@
 // on the line above them with the expected value for that print.
 // See README for more info.
 
-// todo
-print("todo");
-
 let x = 5;
 if (x > 9) {
   print(x);
