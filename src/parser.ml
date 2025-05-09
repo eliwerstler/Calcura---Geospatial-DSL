@@ -4,6 +4,26 @@ open Scanner
 
 exception ParseError of string
 
+let debug_out = ref None
+
+let init_debug () =
+  try
+    let debug_file = open_out_gen [Open_append; Open_creat] 0o666 "test/out/parse_debug.txt" in
+    debug_out := Some debug_file;
+    Printf.fprintf debug_file "Parser debug log initialized\n"
+  with _ -> 
+    debug_out := None
+
+let debug_log fmt =
+  match !debug_out with
+  | Some out_channel -> Printf.fprintf out_channel fmt
+  | None -> Printf.ifprintf stdout fmt
+
+let close_debug () =
+  match !debug_out with
+  | Some out_channel -> close_out out_channel; debug_out := None
+  | None -> ()
+
 (* TODO:
    - Parsing for max, min, reduce, append, prepend, minus, slicing, string methods, type casting (as)
    - Parsing for explicit type annotations, block expressions as value-returning
@@ -127,7 +147,7 @@ let rec parse_expr tokens =
                             (match rest5 with
                             | RPAREN :: rest6 ->
                                 let transform_expr = Transform (list_expr, from_expr, to_expr) in
-                                print_endline (Ast.string_of_expr transform_expr); (* Debugging output *)
+                                debug_log "%s\n" (Ast.string_of_expr transform_expr); (* Debugging output *)
                                 (transform_expr, rest6)
                             | _ -> raise (ParseError "Expected closing parenthesis after transform arguments"))
                         | _ -> raise (ParseError "Expected 'to' to be either 'WGS84' or 'UTM'"))
@@ -150,7 +170,7 @@ let rec parse_expr tokens =
                             (match rest5 with
                             | RPAREN :: rest6 ->
                                 let transform_expr = Transform (list_expr, from_expr, to_expr) in
-                                print_endline (Ast.string_of_expr transform_expr); (* Debugging output *)
+                                debug_log "%s\n" (Ast.string_of_expr transform_expr); (* Debugging output *)
                                 (transform_expr, rest6)
                             | _ -> raise (ParseError "Expected closing parenthesis after transform arguments"))
                         | _ -> raise (ParseError "Expected 'to' to be either 'WGS84' or 'UTM'"))
@@ -444,7 +464,7 @@ let rec parse_program tokens =
                     stmt :: parse_program rest
                 with
                 | ParseError msg as e ->
-                    Printf.printf "Parse error: %s\n" msg;
+                    debug_log "Parse error: %s\n" msg;
                     if tokens <> [EOF] && List.hd tokens <> EOF then
                         parse_program (List.tl tokens)
                     else

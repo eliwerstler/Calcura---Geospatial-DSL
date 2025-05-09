@@ -28,6 +28,29 @@ let func_env : (string list * stmt list) FuncEnv.t ref = ref FuncEnv.empty
 exception ReturnException of value option
 
 let env : value Env.t ref = ref Env.empty
+let debug_out = ref None
+
+let init_debug () =
+  try
+    let debug_file = open_out_gen [Open_append; Open_creat] 0o666 "test/out/debug.txt" in
+    debug_out := Some debug_file;
+    Printf.fprintf debug_file "Debug log initialized\n";
+    flush debug_file  (* Ensure the message is written immediately *)
+  with _ -> 
+    debug_out := None
+
+let debug_log fmt =
+  match !debug_out with
+  | Some out_channel -> Printf.kfprintf
+      (fun oc -> flush oc)
+      out_channel
+      fmt
+  | None -> Printf.ikfprintf (fun _ -> ()) stdout fmt
+
+let close_debug () =
+  match !debug_out with
+  | Some out_channel -> close_out out_channel; debug_out := None
+  | None -> ()
 
 let round_to_decimal_places value decimal_places =
   let factor = 10.0 ** float_of_int decimal_places in
@@ -583,55 +606,158 @@ and eval_stmt = function
       loop ()
   | ForIn (id, list_expr, stmts) ->
       (* Python-style for-in loop *)
+      debug_log "ForIn loop with id %s\n" id;
       let list_val = eval_expr list_expr in
+      debug_log "ForIn list evaluated\n";
       (match list_val with
        | IntList lst ->
-           let saved_env = !env in
+           debug_log "ForIn with IntList: [%s]\n" (String.concat ", " (List.map string_of_int lst));
+           (* Save only the loop variable, don't replace the entire environment *)
+           let saved_val = 
+             try Env.find id !env 
+             with Not_found -> IntVal 0 
+           in
+           let item_count = ref 0 in
+           
            List.iter (fun item ->
+             debug_log "ForIn iteration %d with item %d\n" !item_count item;
              env := Env.add id (IntVal item) !env;
-             List.iter eval_stmt stmts
+             debug_log "Added %s = %d to environment\n" id item;
+             
+             (* Debug variable state *)
+             (try
+               let var_val = Env.find id !env in
+               debug_log "Value of %s before statements: %s\n" id (string_of_value var_val);
+             with _ -> debug_log "Cannot find %s in env\n" id);
+             
+             List.iter eval_stmt stmts;
+             
+             (* Debug variable state after statements *)
+             (try
+               let var_val = Env.find id !env in
+               debug_log "Value of %s after statements: %s\n" id (string_of_value var_val);
+             with _ -> debug_log "Cannot find %s in env after statements\n" id);
+             
+             item_count := !item_count + 1;
            ) lst;
-           env := saved_env
+           
+           (* Restore the loop variable but keep other variable changes *)
+           env := Env.add id saved_val !env
        | FloatList lst ->
-           let saved_env = !env in
+           debug_log "ForIn with FloatList\n";
+           (* Save only the loop variable, don't replace the entire environment *)
+           let saved_val = 
+             try Env.find id !env 
+             with Not_found -> FloatVal 0.0 
+           in
+           
            List.iter (fun item ->
              env := Env.add id (FloatVal item) !env;
+             debug_log "Added %s = %f to environment\n" id item;
              List.iter eval_stmt stmts
            ) lst;
-           env := saved_env
+           
+           (* Restore the loop variable but keep other variable changes *)
+           env := Env.add id saved_val !env
        | _ -> failwith "ForIn expects a list of integers or floats")
   | ForC (init, cond, update, stmts) ->
       (* C-style for loop *)
-      let debug_out = open_out_gen [Open_append; Open_creat] 0o666 "test/out/debug.txt" in
+      debug_log "ForC loop initialization\n";
       
       (* Execute initialization *)
       eval_stmt init;
       
+      (* Debug variables before loop *)
+      debug_log "ForC: Variables before loop:\n";
+      Env.iter (fun name value -> 
+        debug_log "  %s = %s\n" name (string_of_value value)
+      ) !env;
+      
       (* Loop condition-body-update *)
+      let iteration = ref 0 in
       let rec loop () =
+        debug_log "ForC loop iteration %d\n" !iteration;
         match eval_expr cond with
         | BoolVal true -> 
-            (* Debug output *)
-            Printf.fprintf debug_out "ForC loop iteration, condition true\n";
+            debug_log "ForC loop condition true (bool)\n";
+            
+            (* Debug variables at start of iteration *)
+            debug_log "ForC: Variables at iteration %d start:\n" !iteration;
+            Env.iter (fun name value -> 
+              debug_log "  %s = %s\n" name (string_of_value value)
+            ) !env;
+            
+            (* Execute loop body *)
             List.iter eval_stmt stmts;
-            eval_stmt update;  (* Execute update statement *)
+            
+            (* Debug variables after body execution *)
+            debug_log "ForC: Variables after body at iteration %d:\n" !iteration;
+            Env.iter (fun name value -> 
+              debug_log "  %s = %s\n" name (string_of_value value)
+            ) !env;
+            
+            (* Execute update statement *)
+            eval_stmt update;
+            
+            (* Debug variables after update *)
+            debug_log "ForC: Variables after update at iteration %d:\n" !iteration;
+            Env.iter (fun name value -> 
+              debug_log "  %s = %s\n" name (string_of_value value)
+            ) !env;
+            
+            iteration := !iteration + 1;
             loop ()
         | IntVal v when v <> 0 ->
-            (* Debug output *)
-            Printf.fprintf debug_out "ForC loop iteration, condition true (non-zero int)\n";
+            debug_log "ForC loop condition true (non-zero int: %d)\n" v;
+            
+            (* Debug variables at start of iteration *)
+            debug_log "ForC: Variables at iteration %d start:\n" !iteration;
+            Env.iter (fun name value -> 
+              debug_log "  %s = %s\n" name (string_of_value value)
+            ) !env;
+            
+            (* Execute loop body *)
             List.iter eval_stmt stmts;
+            
+            (* Debug variables after body execution *)
+            debug_log "ForC: Variables after body at iteration %d:\n" !iteration;
+            Env.iter (fun name value -> 
+              debug_log "  %s = %s\n" name (string_of_value value)
+            ) !env;
+            
+            (* Execute update statement *)
             eval_stmt update;
+            
+            (* Debug variables after update *)
+            debug_log "ForC: Variables after update at iteration %d:\n" !iteration;
+            Env.iter (fun name value -> 
+              debug_log "  %s = %s\n" name (string_of_value value)
+            ) !env;
+            
+            iteration := !iteration + 1;
             loop ()
         | BoolVal false | IntVal 0 ->
-            Printf.fprintf debug_out "ForC loop condition false, exiting\n";
-            ()  (* Exit loop when condition is false *)
+            debug_log "ForC loop condition false, exiting after %d iterations\n" !iteration;
+            
+            (* Debug variables at end of loop *)
+            debug_log "ForC: Variables at end of loop:\n";
+            Env.iter (fun name value -> 
+              debug_log "  %s = %s\n" name (string_of_value value)
+            ) !env;
+            ()
         | _ -> failwith "For loop condition must evaluate to a boolean or integer"
       in
-      loop ();
-      close_out debug_out
+      loop ()
 
 let run (prog: program) =
   try
-    List.iter eval_stmt prog
+    init_debug ();
+    List.iter eval_stmt prog;
+    close_debug ()
   with
-    | _ -> failwith "Unhandled exception"
+    | ReturnException _ -> failwith "Return statement outside of function"
+    | e -> 
+        print_endline ("Exception caught: " ^ Printexc.to_string e);
+        Printexc.print_backtrace stdout;
+        close_debug ();
+        failwith "Unhandled exception"
