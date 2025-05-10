@@ -1,0 +1,52 @@
+// This is a unit test file. All print statements must have a comment 
+// on the line above them with the expected value for that print.
+// See README for more info.
+
+// Testing Haversine distance function for calculating distance between geographical coordinates
+
+// Define pairs of coordinates (latitude, longitude) in decimal degrees
+let new_york = (40.7128, -74.0060);  // New York City
+let london = (51.5074, -0.1278);     // London
+let tokyo = (35.6762, 139.6503);     // Tokyo
+let sydney = (-33.8688, 151.2093);   // Sydney
+let rio = (-22.9068, -43.1729);      // Rio de Janeiro
+let paris = (48.8566, 2.3522);       // Paris
+
+// Distance between New York and London (approximately 5570 km)
+// 5570.22
+print(haversine(new_york, london));
+
+// Distance between Tokyo and Sydney (approximately 7917 km)
+// 7825.82
+print(haversine(tokyo, sydney));
+
+// Distance between Rio de Janeiro and Paris (approximately 9165 km)
+// 9167.42
+print(haversine(rio, paris));
+
+// Distance between same coordinates should be 0
+// 0.0
+print(haversine(paris, paris));
+
+// Testing with coordinates at the poles
+let north_pole = (90.0, 0.0);
+let south_pole = (-90.0, 0.0);
+
+// Distance between North and South poles (approximately 20015 km)
+// 20015.09
+print(haversine(north_pole, south_pole));
+
+// Test with points on the equator with different longitudes
+let equator_point1 = (0.0, 0.0);     // Prime meridian at equator
+let equator_point2 = (0.0, 90.0);    // 90 degrees East at equator
+
+// Distance along the equator between points (approximately 10007 km)
+// 10007.54
+print(haversine(equator_point1, equator_point2));
+
+// Test with nearby points (Columbia University to Times Square - approximately 5.7 km)
+let columbia = (40.8075, -73.9626);
+let times_square = (40.7580, -73.9855);
+
+// 5.83
+print(haversine(columbia, times_square));
