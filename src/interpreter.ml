@@ -146,6 +146,34 @@ let transform_list lst from_system to_system =
   | "UTM", "WGS84", IntList lst -> IntList (List.map (fun x -> x - 1) lst)
   | _ -> failwith "Unsupported transformation or invalid arguments"
 
+(* Calculate Haversine distance between two coordinates in kilometers *)
+let haversine_distance p1 p2 =
+  (* Radius of the Earth in kilometers *)
+  let earth_radius_km = 6371.0 in
+  (* Convert latitude and longitude from degrees to radians *)
+  let to_radians deg = deg *. Float.pi /. 180.0 in
+  
+  match (p1, p2) with
+  | FloatTuple [lat1; lon1], FloatTuple [lat2; lon2] ->
+      let lat1_rad = to_radians lat1 in
+      let lon1_rad = to_radians lon1 in
+      let lat2_rad = to_radians lat2 in
+      let lon2_rad = to_radians lon2 in
+      
+      (* Differences in coordinates *)
+      let dlat = lat2_rad -. lat1_rad in
+      let dlon = lon2_rad -. lon1_rad in
+      
+      (* Haversine formula *)
+      let a = sin (dlat /. 2.0) ** 2.0 +. 
+              cos lat1_rad *. cos lat2_rad *. 
+              sin (dlon /. 2.0) ** 2.0 in
+      let c = 2.0 *. atan2 (sqrt a) (sqrt (1.0 -. a)) in
+      let distance = earth_radius_km *. c in
+      
+      FloatVal (round_to_decimal_places distance 2)
+  | _ -> failwith "Haversine distance requires two FloatTuple points with [latitude, longitude] coordinates"
+
 let sort_list list_val ascending =
   match list_val with
   | IntList lst ->
@@ -479,6 +507,13 @@ let rec eval_expr (e : expr) : value =
         | IntList (h::l) -> IntVal (List.fold_left min h l)
         | FloatList (h::l) -> FloatVal (List.fold_left min h l)
         | _ -> failwith "Type mismatch in inequality check")
+    | Haversine (point1_expr, point2_expr) ->
+        (* Evaluate the two point expressions *)
+        let point1_val = eval_expr point1_expr in
+        let point2_val = eval_expr point2_expr in
+        
+        (* Calculate the Haversine distance between the points *)
+        haversine_distance point1_val point2_val
     | Call (fn, args) ->
         let (params, body) =
             try FuncEnv.find fn !func_env

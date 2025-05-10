@@ -41,7 +41,7 @@ type expr =
   | Reverse of expr
   | Filter of expr * expr
   | Map of expr * expr
-
+  | Haversine of expr * expr 
 
 and binop = Add | Sub | Mult | Div | Mod | Equal | Neq | Less | Leq | Greater | Geq | And | Or
 and unop = Not

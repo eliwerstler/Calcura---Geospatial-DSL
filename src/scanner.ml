@@ -15,6 +15,7 @@ type token =
   | IF | ELSE | FOR | WHILE | IN
   | PRINT | MAX | MIN | AVG | MEDIAN
   | SHIFT_LEFT | SHIFT_RIGHT | SWAP | REVERSE | SORT | FILTER | MAP
+  | HAVERSINE
   | INT_TYPE | FLOAT_TYPE | BOOL_TYPE | CHAR_TYPE | STRING_TYPE | LIST
   | TRANSFORM | FROM | TO | WGS84 | UTM
   | AS | ID of string
@@ -71,6 +72,7 @@ let string_of_token = function
   | SORT -> "SORT"
   | FILTER -> "FILTER"
   | MAP -> "MAP"
+  | HAVERSINE -> "HAVERSINE"
   | INT_TYPE -> "INT_TYPE"
   | FLOAT_TYPE -> "FLOAT_TYPE"
   | BOOL_TYPE -> "BOOL_TYPE"
@@ -228,6 +230,7 @@ let tokenize (input: string) : token list =
     | "map" -> MAP
     | "max" -> MAX
     | "min" -> MIN
+    | "haversine" -> HAVERSINE
     | _ -> ID id
   in
   tokenize_helper 0 []

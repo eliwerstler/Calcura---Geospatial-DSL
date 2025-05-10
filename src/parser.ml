@@ -125,6 +125,18 @@ let rec parse_expr tokens =
         (match rest1 with
         | RPAREN :: rest2 -> parse_binop (Call("min", [list_expr])) rest2
         | _ -> raise (ParseError "Expected ')'"))
+    | HAVERSINE :: LPAREN :: rest ->
+        (* Parse the first point expression *)
+        let (point1_expr, rest1) = parse_expr rest in
+        (match rest1 with
+        | COMMA :: rest2 ->
+            (* Parse the second point expression *)
+            let (point2_expr, rest3) = parse_expr rest2 in
+            (match rest3 with
+            | RPAREN :: rest4 -> 
+                parse_binop (Haversine (point1_expr, point2_expr)) rest4
+            | _ -> raise (ParseError "Expected ')' after haversine arguments"))
+        | _ -> raise (ParseError "Expected ',' between haversine arguments"))
 
     | TRANSFORM :: LPAREN :: rest ->
         (* Parse the list expression *)
