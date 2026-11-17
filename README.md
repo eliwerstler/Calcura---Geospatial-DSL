@@ -1,5 +1,26 @@
 # Calcura
-## COMS W4115 Team Project
+
+**A small programming language for geospatial math, with its own scanner, parser, AST, and interpreter, written in OCaml.**
+
+```c
+let new_york = (40.7128, -74.0060);
+let london   = (51.5074, -0.1278);
+
+func km_to_miles(km) {
+  return km * 0.621371;
+}
+
+print(km_to_miles(haversine(new_york, london)));   // about 3461
+```
+
+Calcura has variables, conditionals, loops, lists, user-defined functions, and built-in geospatial and statistical operations (haversine distance, coordinate shifts, sort, median, min/max). A file-driven test suite checks every `print` against an expected value written in the comment above it.
+
+**My role:** I added user-defined functions end to end: the `func` syntax in the scanner and parser, the AST nodes, call and return handling with a local scope in the interpreter, and the tests for them.
+
+Team project for Columbia's COMS W4115 (Programming Languages & Translators).
+
+---
+
 
 Calcura is a lightweight, domain-specific programming language designed for geospatial analysis and spatial computations. It provides intuitive syntax and optimized operations for handling geographical data, making it ideal for map processing, space exploration analytics, and geospatial computations.
 
